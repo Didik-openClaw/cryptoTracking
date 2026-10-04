@@ -245,17 +245,23 @@ function leaderboard() {
   return {
     leaderboardRows: accounts.map((a, i) => {
       const r = mulberry32(i + 7);
-      const perf = (scale: number) => ({ pnl: String((r() - 0.4) * scale), roi: String((r() - 0.4) * 0.3), vlm: String(r() * scale * 40) });
+      const av = equity(a);
+      // Accounts with trade history (the first 46) get the larger, mostly positive results.
+      const skill = i < 46 ? 0.25 + r() * 0.75 : r() * 0.3;
+      const perf = (days: number) => {
+        const pnl = av * (r() - 0.35) * skill * Math.sqrt(days / 30) * 0.6;
+        return { pnl: String(pnl), roi: String(pnl / Math.max(av - pnl, 1)), vlm: String(av * days * (1 + r() * 4)) };
+      };
       return {
         ethAddress: a.address,
-        accountValue: String(equity(a)),
+        accountValue: String(av),
         displayName: a.name,
         prize: 0,
         windowPerformances: [
-          ['day', perf(8e4)],
-          ['week', perf(3e5)],
-          ['month', perf(1.2e6)],
-          ['allTime', perf(6e6)],
+          ['day', perf(1)],
+          ['week', perf(7)],
+          ['month', perf(30)],
+          ['allTime', perf(240)],
         ],
       };
     }),

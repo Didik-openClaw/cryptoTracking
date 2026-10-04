@@ -12,6 +12,7 @@ import { go } from '../router';
 export const FUNCTIONS = [
   { path: '', code: 'WHAL', label: 'Scanner Whale' },
   { path: 'coins', code: 'LSHT', label: 'Long vs Short' },
+  { path: 'top', code: 'TOPW', label: 'Top Whale' },
   { path: 'live', code: 'BLKT', label: 'Trade Besar' },
   { path: 'watchlist', code: 'WTCH', label: 'Watchlist' },
   { path: 'settings', code: 'PREF', label: 'Pengaturan' },
@@ -81,7 +82,7 @@ export function Header({ route }: { route: string[] }) {
   const current = route[0] ?? '';
   const active = (p: string) => p === current || (p === 'coins' && current === 'coin');
 
-  // 1–5 open a function, "/" focuses the command line (not while typing).
+  // Digits open a function, "/" focuses the command line (not while typing).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
@@ -108,7 +109,7 @@ export function Header({ route }: { route: string[] }) {
     else if (fn) go(`/${fn.path}`);
     else if (coin) go(`/coin/${encodeURIComponent(coin)}`);
     else {
-      setErr('Tidak dikenal. Ketik alamat 0x… (40 karakter), nama coin (BTC), atau kode fungsi (WHAL, LSHT, BLKT, WTCH, PREF).');
+      setErr(`Tidak dikenal. Ketik alamat 0x… (40 karakter), nama coin (BTC), atau kode fungsi (${FUNCTIONS.map((f) => f.code).join(', ')}).`);
       return;
     }
     setQ('');

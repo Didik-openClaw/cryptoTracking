@@ -27,7 +27,8 @@ try {
     .filter((r) => typeof r?.ethAddress === 'string' && n(r.accountValue) >= MIN_ACCOUNT_VALUE)
     .map((r) => {
       const w = Object.fromEntries(r.windowPerformances ?? []);
-      // [address, accountValue, displayName, pnlDay, pnlWeek, pnlMonth, pnlAllTime, vlmMonth]
+      const roi = (k) => Math.round(n(w[k]?.roi) * 1e4) / 1e4;
+      // Same layout as CompactRow in src/lib/leaderboard.ts.
       return [
         r.ethAddress.toLowerCase(),
         Math.round(n(r.accountValue)),
@@ -37,6 +38,13 @@ try {
         Math.round(n(w.month?.pnl)),
         Math.round(n(w.allTime?.pnl)),
         Math.round(n(w.month?.vlm)),
+        roi('day'),
+        roi('week'),
+        roi('month'),
+        roi('allTime'),
+        Math.round(n(w.day?.vlm)),
+        Math.round(n(w.week?.vlm)),
+        Math.round(n(w.allTime?.vlm)),
       ];
     })
     .sort((a, b) => b[1] - a[1])

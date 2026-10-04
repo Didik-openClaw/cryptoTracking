@@ -1,6 +1,7 @@
-import { getUserFills, limiter, Priority, USER_FILLS_CAP } from './api';
+import { USER_FILLS_CAP } from './api';
+import { fillsService } from './fills';
 import { num } from './format';
-import { Observable, sleep } from './observable';
+import { Observable } from './observable';
 import { load, save } from './storage';
 import type { HLFill, Side, WalletSnapshot } from './types';
 
@@ -44,24 +45,19 @@ const MAX_ENTRIES = 4000;
 /** Re-check an unchanged position at most this often (it may have been closed and reopened between scans). */
 const STALE_MS = 6 * 60 * 60_000;
 
-/**
- * A userFills response costs up to 120 weight (60 position scans). Open-time
- * lookups pace themselves to this share of the request budget so the scanner
- * keeps most of it.
- */
-const BUDGET_SHARE = 0.3;
-
 const key = (address: string, coin: string) => `${address}|${coin}`;
 
 class OpenTimes extends Observable {
   private cache = new Map<string, OpenInfo>(load<[string, OpenInfo][]>('opentimes', []));
-  private queue: string[] = [];
-  private inFlight = new Set<string>();
-  private running = false;
   private positionsOf: (address: string) => WalletSnapshot | undefined = () => undefined;
 
   constructor() {
     super(400);
+    fillsService.onFills((address, fills) => {
+      const snap = this.positionsOf(address);
+      if (snap) this.ingest(address, fills, snap);
+    });
+    fillsService.subscribe(() => this.emit());
   }
 
   /** Where to look up a wallet's current positions (the scanner). */
@@ -75,12 +71,11 @@ class OpenTimes extends Observable {
   }
 
   isPending(address: string): boolean {
-    return this.inFlight.has(address) || this.queue.includes(address);
+    return fillsService.isPending(address);
   }
 
   /** Ask for open times of a wallet's positions; cheap to call repeatedly. */
   request(address: string): void {
-    if (this.isPending(address)) return;
     const snap = this.positionsOf(address);
     if (!snap?.positions.length) return;
     const now = Date.now();
@@ -88,9 +83,7 @@ class OpenTimes extends Observable {
       const info = this.get(address, p.coin, p.side);
       return !info || now - info.checkedAt > STALE_MS;
     });
-    if (!missing) return;
-    this.queue.push(address);
-    void this.run();
+    if (missing) fillsService.request(address);
   }
 
   /** A scan saw positions change: forget open times that no longer apply. */
@@ -102,7 +95,6 @@ class OpenTimes extends Observable {
     }
   }
 
-  /** Use fills that were fetched anyway (the wallet page) instead of a new request. */
   ingest(address: string, fills: HLFill[], snap: WalletSnapshot): void {
     const now = Date.now();
     for (const p of snap.positions) {
@@ -110,31 +102,6 @@ class OpenTimes extends Observable {
     }
     this.persist();
     this.emit();
-  }
-
-  private async run(): Promise<void> {
-    if (this.running) return;
-    this.running = true;
-    try {
-      while (this.queue.length) {
-        const address = this.queue.shift()!;
-        this.inFlight.add(address);
-        try {
-          const fills = await getUserFills(address, undefined, Priority.Scan);
-          const snap = this.positionsOf(address);
-          if (snap) this.ingest(address, fills, snap);
-          const weight = 20 + Math.ceil(fills.length / 20);
-          await sleep((weight / (limiter.rate * BUDGET_SHARE)) * 60_000);
-        } catch {
-          /* leave uncached; a later request retries */
-        } finally {
-          this.inFlight.delete(address);
-        }
-      }
-    } finally {
-      this.running = false;
-      this.emit();
-    }
   }
 
   private persist(): void {

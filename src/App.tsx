@@ -6,6 +6,7 @@ import { CoinsPage } from './pages/CoinsPage';
 import { LivePage } from './pages/LivePage';
 import { ScannerPage } from './pages/ScannerPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { TopWhalesPage } from './pages/TopWhalesPage';
 import { WalletPage } from './pages/WalletPage';
 import { WatchlistPage } from './pages/WatchlistPage';
 import { mode } from './lib/mode';
@@ -25,6 +26,9 @@ export function App() {
       break;
     case 'live':
       content = <LivePage />;
+      break;
+    case 'top':
+      content = <TopWhalesPage />;
       break;
     case 'wallet':
       content = <WalletPage address={arg ?? ''} />;

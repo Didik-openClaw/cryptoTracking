@@ -163,7 +163,7 @@ export function SettingsPage() {
             label="Hapus cache"
             question="Hapus cache hasil scan dan leaderboard?"
             onConfirm={() => {
-              for (const k of ['scan', 'seeds', 'discovered']) remove(k);
+              for (const k of ['scan', 'seeds', 'seeds2', 'discovered', 'opentimes', 'tstats']) remove(k);
               location.reload();
             }}
           />

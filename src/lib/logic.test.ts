@@ -6,7 +6,7 @@ import { parseLeaderboard, toCompact } from './leaderboard';
 import { findOpenTime } from './openTimes';
 import { aggregateByCoin, liqDistance, parseClearinghouse, toLive } from './positions';
 import { WeightLimiter } from './rateLimiter';
-import { computeFillStats } from './stats';
+import { computeFillStats, computeTraderStats, roundTrips } from './stats';
 import type { HLClearinghouseState, HLFill, HLWsTrade, WalletSnapshot } from './types';
 
 const A = '0x' + 'a'.repeat(40);
@@ -44,6 +44,8 @@ describe('format', () => {
     expect(fmtUsd(-1_200_000_000)).toBe('-$1.20B');
     expect(fmtUsd(12_500, { sign: true })).toBe('+$12.5K');
     expect(fmtUsd(950)).toBe('$950.00');
+    expect(fmtUsd(5908.74)).toBe('$5.91K');
+    expect(fmtUsd(5908.74, { compact: false })).toBe('$5,908.74');
   });
   it('formats prices by magnitude', () => {
     expect(fmtPx(61234.56)).toBe('61,234.6');
@@ -222,18 +224,26 @@ describe('leaderboard', () => {
           displayName: 'Paus',
           prize: 0,
           windowPerformances: [
-            ['day', { pnl: '10', roi: '0', vlm: '1' }],
-            ['week', { pnl: '20', roi: '0', vlm: '2' }],
-            ['month', { pnl: '30', roi: '0', vlm: '3000' }],
-            ['allTime', { pnl: '40', roi: '0', vlm: '4' }],
+            ['day', { pnl: '10', roi: '0.01', vlm: '1' }],
+            ['week', { pnl: '20', roi: '0.02', vlm: '2' }],
+            ['month', { pnl: '30', roi: '0.03', vlm: '3000' }],
+            ['allTime', { pnl: '40', roi: '0.04', vlm: '4' }],
           ],
         },
       ],
     };
     const [acc] = parseLeaderboard(raw);
-    expect(acc).toMatchObject({ address: A, accountValue: 1234567.8, displayName: 'Paus', pnlMonth: 30, pnlAllTime: 40, vlmMonth: 3000 });
+    expect(acc).toMatchObject({ address: A, accountValue: 1234567.8, displayName: 'Paus' });
+    expect(acc.pnl).toEqual({ day: 10, week: 20, month: 30, allTime: 40 });
+    expect(acc.vlm.month).toBe(3000);
     const [back] = parseLeaderboard({ generatedAt: 1, rows: [toCompact(acc)] });
-    expect(back).toMatchObject({ address: A, accountValue: 1234568, displayName: 'Paus', pnlWeek: 20 });
+    expect(back).toMatchObject({ address: A, accountValue: 1234568, displayName: 'Paus' });
+    expect(back.pnl.week).toBe(20);
+    expect(back.vlm).toEqual(acc.vlm);
+    // Rows written by older builds stop after vlmMonth.
+    const [old] = parseLeaderboard({ generatedAt: 1, rows: [[A, 5, null, 1, 2, 3, 4, 9]] });
+    expect(old.pnl.allTime).toBe(4);
+    expect(old.roi.month).toBe(0);
     expect(parseLeaderboard(null)).toEqual([]);
   });
 });
@@ -254,6 +264,25 @@ describe('WeightLimiter', () => {
       await vi.advanceTimersByTimeAsync(500);
       await Promise.all([low, high]);
       expect(order).toEqual(['high', 'low']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('WeightLimiter charge', () => {
+  it('makes later requests wait for weight charged after a response', async () => {
+    vi.useFakeTimers();
+    try {
+      const lim = new WeightLimiter(60, { capacity: 30 }); // 1 weight per second
+      const served: string[] = [];
+      await lim.acquire(20, 2);
+      lim.charge(15); // 30 - 20 - 15 = -5
+      void lim.acquire(5, 2).then(() => served.push('next'));
+      await vi.advanceTimersByTimeAsync(9_000);
+      expect(served).toEqual([]);
+      await vi.advanceTimersByTimeAsync(1_100);
+      expect(served).toEqual(['next']);
     } finally {
       vi.useRealTimers();
     }
@@ -296,5 +325,54 @@ describe('computeFillStats', () => {
     expect(s.biggestLoss).toBe(-200);
     expect(s.byCoin[0].coin).toBe('BTC');
     expect(s.firstTime).toBe(1);
+  });
+});
+
+describe('round trips & trader stats', () => {
+  const f = (time: number, side: 'A' | 'B', sz: number, start: number, closedPnl = 0, coin = 'BTC', px = 100): HLFill => ({
+    coin, px: String(px), sz: String(sz), side, time, startPosition: String(start), dir: '', closedPnl: String(closedPnl),
+    hash: '0x', oid: time, crossed: true, fee: '1', tid: time,
+  });
+
+  it('rebuilds trips, skipping a position that predates the window', () => {
+    const fills = [
+      f(1, 'A', 5, 5, 40), // closes a long opened before the window: ignored
+      f(2, 'B', 10, 0), // open long 10
+      f(3, 'B', 5, 10), // add
+      f(4, 'A', 8, 15, 30), // partial close
+      f(5, 'A', 7, 7, 20), // close -> trip 1 pnl 50
+      f(6, 'A', 4, 0), // open short 4
+      f(7, 'B', 10, -4, -25), // flip: closes short (trip 2 pnl -25), opens long 6
+      f(8, 'A', 6, 6, 10), // close long -> trip 3 pnl 10
+      f(9, 'B', 3, 0, 0, 'ETH'), // still open: not a trip
+    ];
+    const trips = roundTrips(fills);
+    expect(trips.map((t) => [t.side, t.openAt, t.closeAt, t.pnl])).toEqual([
+      ['long', 2, 5, 50],
+      ['short', 6, 7, -25],
+      ['long', 7, 8, 10],
+    ]);
+    const s = computeTraderStats(fills);
+    expect(s.trades).toBe(3);
+    expect(s.winRate).toBeCloseTo(2 / 3);
+    expect(s.profitFactor).toBeCloseTo(60 / 25);
+    expect(s.avgWin).toBe(30);
+    expect(s.avgLoss).toBe(25);
+    expect(s.payoff).toBeCloseTo(30 / 25);
+    expect(s.expectancy).toBeCloseTo(35 / 3);
+    expect(s.maxWinStreak).toBe(1);
+    expect(s.realizedPnl).toBe(40 + 30 + 20 - 25 + 10);
+    expect(s.fees).toBe(9);
+    // opening notional: long 10+5 (BTC), short 4, long 6 (flip remainder), long 3 (ETH)
+    expect(s.longShare).toBeCloseTo((10 + 5 + 6 + 3) / (10 + 5 + 4 + 6 + 3));
+    expect(s.avgHoldMs).toBeCloseTo((3 + 1 + 1) / 3);
+  });
+
+  it('handles no losses and no trades', () => {
+    expect(computeTraderStats([f(1, 'B', 1, 0), f(2, 'A', 1, 1, 5)]).profitFactor).toBe(Infinity);
+    const empty = computeTraderStats([]);
+    expect(empty.winRate).toBeNull();
+    expect(empty.profitFactor).toBeNull();
+    expect(empty.trades).toBe(0);
   });
 });

@@ -52,6 +52,13 @@ export class WeightLimiter {
     return this.queue.length;
   }
 
+  /** Charge weight after the fact (Hyperliquid adds weight for large responses). */
+  charge(weight: number): void {
+    if (weight <= 0) return;
+    this.refill();
+    this.tokens -= weight;
+  }
+
   /** Stop serving requests for `ms` (used after an HTTP 429). */
   pause(ms: number): void {
     this.pausedUntil = Math.max(this.pausedUntil, this.now() + ms);

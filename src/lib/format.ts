@@ -16,6 +16,7 @@ export function fmtUsd(v: number, opts: { compact?: boolean; sign?: boolean; dec
     if (a >= 1e9) return `${s}$${(a / 1e9).toFixed(decimals ?? 2)}B`;
     if (a >= 1e6) return `${s}$${(a / 1e6).toFixed(decimals ?? 2)}M`;
     if (a >= 1e4) return `${s}$${(a / 1e3).toFixed(decimals ?? 1)}K`;
+    if (a >= 1e3) return `${s}$${(a / 1e3).toFixed(decimals ?? 2)}K`;
   }
   return `${s}$${a.toLocaleString('en-US', { minimumFractionDigits: decimals ?? 2, maximumFractionDigits: decimals ?? 2 })}`;
 }
@@ -94,6 +95,17 @@ export function fmtAge(ms: number, now = Date.now()): string {
   const d = Math.floor(h / 24);
   return d < 30 ? `${d}hr ${h % 24}j` : `${d}hr`;
 }
+
+/** A duration in the same compact units as fmtAge. */
+export const fmtSpan = (ms: number | null | undefined) => (ms == null ? '–' : fmtAge(0, ms));
+
+/** Profit factor: "1.85", "∞" when nothing was lost, "–" when unknown. */
+export function fmtPF(pf: number | null | undefined): string {
+  if (pf === null || pf === undefined) return '–';
+  return pf === Infinity ? '∞' : pf.toFixed(2);
+}
+export const pfClass = (pf: number | null | undefined) => (pf == null ? '' : pf >= 1.5 ? 'pos' : pf < 1 ? 'neg' : '');
+export const wrClass = (wr: number | null | undefined) => (wr == null ? '' : wr >= 0.55 ? 'pos' : wr < 0.45 ? 'neg' : '');
 
 export function fmtAgo(ms: number, now = Date.now()): string {
   const s = Math.max(0, Math.round((now - ms) / 1000));

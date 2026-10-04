@@ -783,6 +783,7 @@ tr.flash td {
   color: var(--link);
 }
 .addr .label {
+  margin-right: 5px;
   color: var(--yellow);
   max-width: 140px;
   overflow: hidden;

@@ -16,8 +16,11 @@ export const INFO_URL = 'https://api.hyperliquid.xyz/info';
 export const WS_URL = 'wss://api.hyperliquid.xyz/ws';
 export const LEADERBOARD_URL = 'https://stats-data.hyperliquid.xyz/Mainnet/leaderboard';
 
-/** Request priority: user actions beat watchlist polling beat the background scan. */
-export const Priority = { Scan: 0, Watch: 1, User: 2 } as const;
+/**
+ * Request priority: a page the user opened beats batch lookups for a list
+ * (Top Whale stats) beats watchlist polling beats the background scan.
+ */
+export const Priority = { Scan: 0, Watch: 1, Bulk: 2, User: 3 } as const;
 
 // Shared budget for every REST call the app makes. The default rate leaves
 // headroom below the 1200/min limit; the scanner never dips into the last 200
@@ -43,6 +46,8 @@ export class ApiError extends Error {
 
 interface InfoOpts {
   weight?: number;
+  /** Weight Hyperliquid adds per `perItems` items in an array response (charged after it arrives). */
+  perItems?: number;
   priority?: number;
   signal?: AbortSignal;
 }
@@ -83,7 +88,9 @@ export async function info<T>(body: Record<string, unknown>, opts: InfoOpts = {}
       }
       throw fail(new ApiError(`API Hyperliquid error ${res.status}`, res.status));
     }
-    return (await res.json()) as T;
+    const json = (await res.json()) as T;
+    if (opts.perItems && Array.isArray(json)) limiter.charge(Math.floor(json.length / opts.perItems));
+    return json;
   }
 }
 
@@ -110,9 +117,9 @@ export const getSpotState = (user: string, signal?: AbortSignal) =>
 export const getOpenOrders = (user: string, signal?: AbortSignal) =>
   info<HLOpenOrder[]>({ type: 'frontendOpenOrders', user }, { weight: 20, signal });
 
-// userFills returns up to the 2000 most recent fills; weight grows per 20 items.
+// userFills returns up to the 2000 most recent fills: weight 20 plus 1 per 20 fills returned.
 export const getUserFills = (user: string, signal?: AbortSignal, priority: number = Priority.User) =>
-  info<HLFill[]>({ type: 'userFills', user, aggregateByTime: true }, { weight: 120, signal, priority });
+  info<HLFill[]>({ type: 'userFills', user, aggregateByTime: true }, { weight: 20, perItems: 20, signal, priority });
 
 /** userFills never returns more than this many fills. */
 export const USER_FILLS_CAP = 2000;
@@ -131,7 +138,7 @@ export async function getUserFunding(user: string, startTime: number, signal?: A
   const out: HLFundingEntry[] = [];
   let from = startTime;
   for (let page = 0; page < maxPages; page++) {
-    const batch = await info<HLFundingEntry[]>({ type: 'userFunding', user, startTime: from }, { weight: 45, signal });
+    const batch = await info<HLFundingEntry[]>({ type: 'userFunding', user, startTime: from }, { weight: 20, perItems: 20, signal });
     out.push(...batch);
     if (batch.length < FUNDING_PAGE) break;
     from = Math.max(...batch.map((e) => e.time)) + 1;
@@ -140,10 +147,10 @@ export async function getUserFunding(user: string, startTime: number, signal?: A
 }
 
 export const getLedger = (user: string, startTime: number, signal?: AbortSignal) =>
-  info<HLLedgerEntry[]>({ type: 'userNonFundingLedgerUpdates', user, startTime }, { weight: 40, signal });
+  info<HLLedgerEntry[]>({ type: 'userNonFundingLedgerUpdates', user, startTime }, { weight: 20, signal });
 
 export const getCandles = (coin: string, interval: string, startTime: number, endTime: number, signal?: AbortSignal) =>
   info<HLCandle[]>(
     { type: 'candleSnapshot', req: { coin, interval, startTime, endTime } },
-    { weight: 30, signal },
+    { weight: 20, perItems: 60, signal },
   );

@@ -13,13 +13,30 @@ import {
   getUserFunding,
   Priority,
 } from '../lib/api';
-import { fmtAge, fmtDateTime, fmtPct, fmtPx, fmtShortDateTime, fmtSize, fmtUsd, isAddress, num, pnlClass, shortAddr } from '../lib/format';
+import {
+  fmtAge,
+  fmtDateTime,
+  fmtPct,
+  fmtPF,
+  fmtPx,
+  fmtShortDateTime,
+  fmtSize,
+  fmtSpan,
+  fmtUsd,
+  isAddress,
+  num,
+  pfClass,
+  pnlClass,
+  shortAddr,
+  wrClass,
+} from '../lib/format';
 import { market } from '../lib/market';
 import { useObservable } from '../lib/observable';
+import { fillsService } from '../lib/fills';
 import { findOpenTime, openTimes } from '../lib/openTimes';
 import { parseClearinghouse, toLive } from '../lib/positions';
 import { scanner } from '../lib/scanner';
-import { computeFillStats } from '../lib/stats';
+import { computeFillStats, computeTraderStats, roundTrips } from '../lib/stats';
 import type { HLFill, HLFundingEntry, HLLedgerEntry, HLOpenOrder, HLPortfolio, HLSpotBalance, WalletSnapshot } from '../lib/types';
 import { translateDir, watchlist } from '../lib/watchlist';
 
@@ -128,7 +145,10 @@ function Wallet({ address }: { address: string }) {
     [data.snap, mv], // mv: re-price on every market tick
   );
   const snap = data.snap;
-  // Share the open times this page can compute with the scanner tables.
+  // Share what this page fetched: trader stats (Top Whale) and open times (scanner tables).
+  useEffect(() => {
+    if (data.fills) fillsService.publish(address, data.fills);
+  }, [address, data.fills]);
   useEffect(() => {
     if (data.fills && data.snap) openTimes.ingest(address, data.fills, data.snap);
   }, [address, data.fills, data.snap]);
@@ -171,7 +191,7 @@ function Wallet({ address }: { address: string }) {
           <div className="row small" style={{ marginTop: 4 }}>
             {seed && (
               <span className="tag accent" title="Data leaderboard Hyperliquid">
-                Leaderboard: PnL 30h {fmtUsd(seed.pnlMonth, { sign: true })} · all-time {fmtUsd(seed.pnlAllTime, { sign: true })}
+                Leaderboard: PnL 30h {fmtUsd(seed.pnl.month, { sign: true })} · all-time {fmtUsd(seed.pnl.allTime, { sign: true })}
               </span>
             )}
             <a href={`https://app.hyperliquid.xyz/explorer/address/${address}`} target="_blank" rel="noreferrer">
@@ -731,44 +751,149 @@ function SpotTab({ spot, error }: { spot: HLSpotBalance[] | null; error?: string
 }
 
 function StatsTab({ fills, error }: { fills: HLFill[] | null; error?: string }) {
-  const s = useMemo(() => (fills ? computeFillStats(fills) : null), [fills]);
-  if (!s) return <Loading error={error} />;
-  if (!s.fills) return <Empty>Belum ada riwayat trade untuk dihitung.</Empty>;
+  const data = useMemo(() => {
+    if (!fills) return null;
+    const trips = roundTrips(fills);
+    const byCoin = new Map<string, { trades: number; wins: number; pnl: number }>();
+    for (const t of trips) {
+      const c = byCoin.get(t.coin) ?? { trades: 0, wins: 0, pnl: 0 };
+      c.trades++;
+      if (t.pnl > 0) c.wins++;
+      c.pnl += t.pnl;
+      byCoin.set(t.coin, c);
+    }
+    return { basic: computeFillStats(fills), t: computeTraderStats(fills), trips: trips.sort((a, b) => b.closeAt - a.closeAt), byCoin };
+  }, [fills]);
+  if (!data) return <Loading error={error} />;
+  const { basic: b, t } = data;
+  if (!b.fills) return <Empty>Belum ada riwayat trade untuk dihitung.</Empty>;
   return (
     <div className="stack">
       <div className="notice info small">
-        Dihitung dari {s.fills} fill terakhir ({fmtDateTime(s.firstTime)} – {fmtDateTime(s.lastTime)}). API Hyperliquid hanya
-        memberikan maksimal 2000 fill terbaru.
+        Dari {b.fills} fill terakhir ({fmtDateTime(b.firstTime)} – {fmtDateTime(b.lastTime)}), maksimal 2000 dari API. Satu
+        trade = posisi dibuka sampai ditutup atau dibalik. Angka trade sebelum fee.
       </div>
       <div className="cards">
-        <StatCard label="Volume" value={fmtUsd(s.volume)} />
-        <StatCard label="PnL terealisasi" value={<Pnl v={s.realizedPnl} />} sub={<>Setelah fee: <Pnl v={s.netPnl} /></>} />
-        <StatCard label="Win rate" value={s.winRate === null ? '–' : fmtPct(s.winRate, { decimals: 1 })} sub={`${s.wins} menang · ${s.losses} kalah`} />
-        <StatCard label="Fee dibayar" value={fmtUsd(s.fees)} />
-        <StatCard label="Profit terbesar" value={<Pnl v={s.biggestWin} />} sub={<>Rugi terbesar: <Pnl v={s.biggestLoss} /></>} />
-        <StatCard label="Kena likuidasi" value={s.liquidations} tone={s.liquidations ? 'danger' : undefined} sub="fill likuidasi" />
+        <StatCard
+          label="Win rate"
+          value={<span className={wrClass(t.winRate)}>{t.winRate === null ? '–' : fmtPct(t.winRate, { decimals: 1 })}</span>}
+          sub={`${t.wins} menang · ${t.losses} kalah · ${t.trades} trade`}
+        />
+        <StatCard
+          label="Profit factor"
+          value={<span className={pfClass(t.profitFactor)}>{fmtPF(t.profitFactor)}</span>}
+          sub={<>Profit {fmtUsd(t.grossProfit)} ÷ rugi {fmtUsd(t.grossLoss)}</>}
+        />
+        <StatCard
+          label="Expectancy / trade"
+          value={t.expectancy === null ? '–' : <Pnl v={t.expectancy} />}
+          sub={t.tradesPerDay !== null ? `${t.tradesPerDay.toFixed(1)} trade per hari` : ''}
+        />
+        <StatCard
+          label="Avg win / avg loss"
+          value={
+            <>
+              <span className="pos">{fmtUsd(t.avgWin)}</span>
+              <span className="dim"> / </span>
+              <span className="neg">{fmtUsd(-t.avgLoss)}</span>
+            </>
+          }
+          sub={`Payoff ratio ${t.payoff === null ? '–' : t.payoff.toFixed(2)}`}
+        />
+        <StatCard
+          label="Best / worst trade"
+          value={
+            <>
+              <Pnl v={t.bestTrade} />
+              <span className="dim"> / </span>
+              <Pnl v={t.worstTrade} />
+            </>
+          }
+          sub={`Streak terpanjang: ${t.maxWinStreak} menang · ${t.maxLossStreak} kalah`}
+        />
+        <StatCard label="Lama pegang posisi" value={fmtSpan(t.avgHoldMs)} sub="rata-rata per trade" />
+        <StatCard label="PnL terealisasi" value={<Pnl v={b.realizedPnl} />} sub={<>Setelah fee: <Pnl v={b.netPnl} /></>} />
+        <StatCard label="Volume · fee" value={fmtUsd(b.volume)} sub={`Fee ${fmtUsd(b.fees)}`} />
+        <StatCard
+          label="Bias"
+          value={
+            t.longShare === null ? (
+              '–'
+            ) : (
+              <span className={t.longShare >= 0.5 ? 'pos' : 'neg'}>
+                {t.longShare >= 0.5 ? `${Math.round(t.longShare * 100)}% LONG` : `${Math.round((1 - t.longShare) * 100)}% SHORT`}
+              </span>
+            )
+          }
+          sub={`Coin utama: ${t.topCoins.join(', ') || '–'}`}
+        />
+        <StatCard label="Kena likuidasi" value={b.liquidations} tone={b.liquidations ? 'danger' : undefined} sub="fill likuidasi" />
       </div>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Coin</th>
-              <th className="num">Volume</th>
-              <th className="num">Fill</th>
-              <th className="num">PnL terealisasi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {s.byCoin.map((c) => (
-              <tr key={c.coin}>
-                <td className="coin">{c.coin}</td>
-                <td className="num">{fmtUsd(c.volume)}</td>
-                <td className="num muted">{c.fills}</td>
-                <td className={`num ${pnlClass(c.pnl)}`}>{fmtUsd(c.pnl, { sign: true })}</td>
+      <div className="grid-2">
+        <div className="table-wrap compact">
+          <table>
+            <thead>
+              <tr>
+                <th>Coin</th>
+                <th className="num">Volume</th>
+                <th className="num">Trade</th>
+                <th className="num">Win rate</th>
+                <th className="num">PnL trade</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {b.byCoin.map((c) => {
+                const tc = data.byCoin.get(c.coin);
+                return (
+                  <tr key={c.coin}>
+                    <td className="coin">{c.coin}</td>
+                    <td className="num">{fmtUsd(c.volume)}</td>
+                    <td className="num muted">{tc?.trades ?? 0}</td>
+                    <td className={`num ${wrClass(tc?.trades ? tc.wins / tc.trades : null)}`}>
+                      {tc?.trades ? fmtPct(tc.wins / tc.trades, { decimals: 0 }) : '–'}
+                    </td>
+                    <td className={`num ${pnlClass(tc?.pnl ?? 0)}`}>{tc?.trades ? fmtUsd(tc.pnl, { sign: true }) : <span className="dim">–</span>}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="table-wrap compact table-scroll" style={{ maxHeight: 420 }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Trade terakhir</th>
+                <th>Sisi</th>
+                <th>Dibuka</th>
+                <th className="num">Durasi</th>
+                <th className="num">PnL</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.trips.slice(0, 50).map((tr) => (
+                <tr key={`${tr.coin}-${tr.openAt}-${tr.closeAt}`}>
+                  <td className="coin">{tr.coin}</td>
+                  <td>
+                    <SideBadge side={tr.side} />
+                  </td>
+                  <td className="small nowrap" title={`Ditutup ${fmtDateTime(tr.closeAt)}`}>
+                    {fmtShortDateTime(tr.openAt)}
+                  </td>
+                  <td className="num muted">{fmtSpan(tr.closeAt - tr.openAt)}</td>
+                  <td className={`num ${pnlClass(tr.pnl)}`}>{fmtUsd(tr.pnl, { sign: true })}</td>
+                </tr>
+              ))}
+              {!data.trips.length && (
+                <tr>
+                  <td colSpan={5} className="dim">
+                    Belum ada trade yang selesai dalam periode data.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

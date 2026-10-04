@@ -177,15 +177,16 @@ export interface WalletSnapshot {
   updatedAt: number;
 }
 
+export type PerfWindow = 'day' | 'week' | 'month' | 'allTime';
+
+/** One leaderboard account: PnL, ROI (fraction) and volume per window. */
 export interface SeedAccount {
   address: string;
   accountValue: number;
   displayName: string | null;
-  pnlDay: number;
-  pnlWeek: number;
-  pnlMonth: number;
-  pnlAllTime: number;
-  vlmMonth: number;
+  pnl: Record<PerfWindow, number>;
+  roi: Record<PerfWindow, number>;
+  vlm: Record<PerfWindow, number>;
 }
 
 /** A wallet position enriched with live mark data for display. */

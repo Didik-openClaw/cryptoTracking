@@ -1,7 +1,7 @@
 import { LEADERBOARD_URL } from './api';
 import { num } from './format';
 import { load, save } from './storage';
-import type { SeedAccount } from './types';
+import type { PerfWindow, SeedAccount } from './types';
 
 /**
  * Hyperliquid has no "list every big position" endpoint, so the scanner needs
@@ -18,8 +18,13 @@ export const MAX_SEEDS = 8000;
 const CACHE_FRESH_MS = 30 * 60_000;
 const BUNDLE_FRESH_MS = 6 * 60 * 60_000;
 
-/** Compact row: [address, accountValue, displayName, pnlDay, pnlWeek, pnlMonth, pnlAllTime, vlmMonth] */
-export type CompactRow = [string, number, string | null, number, number, number, number, number];
+/**
+ * Compact row: [address, accountValue, displayName,
+ *   pnlDay, pnlWeek, pnlMonth, pnlAllTime, vlmMonth,
+ *   roiDay, roiWeek, roiMonth, roiAllTime, vlmDay, vlmWeek, vlmAllTime]
+ * (older files stop after vlmMonth; missing values read as 0).
+ */
+export type CompactRow = [string, number, string | null, ...number[]];
 
 export interface SeedFile {
   generatedAt: number;
@@ -41,6 +46,10 @@ interface RawRow {
   windowPerformances?: [string, { pnl: string; roi: string; vlm: string }][];
 }
 
+const WINDOWS: PerfWindow[] = ['day', 'week', 'month', 'allTime'];
+const perWindow = (f: (w: PerfWindow) => number) =>
+  Object.fromEntries(WINDOWS.map((w) => [w, f(w)])) as Record<PerfWindow, number>;
+
 /** Accept either the raw Hyperliquid leaderboard JSON or our compact file. */
 export function parseLeaderboard(json: unknown): SeedAccount[] {
   if (!json || typeof json !== 'object') return [];
@@ -55,30 +64,44 @@ export function parseLeaderboard(json: unknown): SeedAccount[] {
         address: r.ethAddress.toLowerCase(),
         accountValue: num(r.accountValue),
         displayName: r.displayName || null,
-        pnlDay: num(w.get('day')?.pnl),
-        pnlWeek: num(w.get('week')?.pnl),
-        pnlMonth: num(w.get('month')?.pnl),
-        pnlAllTime: num(w.get('allTime')?.pnl),
-        vlmMonth: num(w.get('month')?.vlm),
+        pnl: perWindow((k) => num(w.get(k)?.pnl)),
+        roi: perWindow((k) => num(w.get(k)?.roi)),
+        vlm: perWindow((k) => num(w.get(k)?.vlm)),
       };
     });
 }
 
 export function toCompact(a: SeedAccount): CompactRow {
   const r = (v: number) => Math.round(v);
-  return [a.address, r(a.accountValue), a.displayName, r(a.pnlDay), r(a.pnlWeek), r(a.pnlMonth), r(a.pnlAllTime), r(a.vlmMonth)];
+  const r4 = (v: number) => Math.round(v * 1e4) / 1e4;
+  return [
+    a.address,
+    r(a.accountValue),
+    a.displayName,
+    r(a.pnl.day),
+    r(a.pnl.week),
+    r(a.pnl.month),
+    r(a.pnl.allTime),
+    r(a.vlm.month),
+    r4(a.roi.day),
+    r4(a.roi.week),
+    r4(a.roi.month),
+    r4(a.roi.allTime),
+    r(a.vlm.day),
+    r(a.vlm.week),
+    r(a.vlm.allTime),
+  ];
 }
 
 function fromCompact(r: CompactRow): SeedAccount {
+  const n = (i: number) => num(r[i] as number);
   return {
     address: String(r[0]).toLowerCase(),
-    accountValue: num(r[1]),
-    displayName: r[2] || null,
-    pnlDay: num(r[3]),
-    pnlWeek: num(r[4]),
-    pnlMonth: num(r[5]),
-    pnlAllTime: num(r[6]),
-    vlmMonth: num(r[7]),
+    accountValue: n(1),
+    displayName: (r[2] as string | null) || null,
+    pnl: { day: n(3), week: n(4), month: n(5), allTime: n(6) },
+    roi: { day: n(8), week: n(9), month: n(10), allTime: n(11) },
+    vlm: { day: n(12), week: n(13), month: n(7), allTime: n(14) },
   };
 }
 
@@ -100,12 +123,12 @@ async function fetchJson(url: string, timeoutMs: number): Promise<unknown> {
 
 function cache(accounts: SeedAccount[], generatedAt: number): void {
   // Keep the cache small enough for localStorage (~5MB budget shared).
-  save('seeds', { generatedAt, rows: topAccounts(accounts, 6000).map(toCompact) } satisfies SeedFile);
+  save('seeds2', { generatedAt, rows: topAccounts(accounts, 6000).map(toCompact) } satisfies SeedFile);
 }
 
 export async function loadSeeds(forceLive = false, log: (msg: string) => void = () => {}): Promise<SeedResult> {
   const now = Date.now();
-  const cached = load<SeedFile | null>('seeds', null);
+  const cached = load<SeedFile | null>('seeds2', null);
   if (!forceLive && cached && now - cached.generatedAt < CACHE_FRESH_MS && cached.rows.length) {
     return { accounts: parseLeaderboard(cached), source: 'cache', generatedAt: cached.generatedAt };
   }

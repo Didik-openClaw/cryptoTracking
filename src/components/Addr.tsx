@@ -57,7 +57,7 @@ export function Addr({ address, star = true, copy = false }: { address: string; 
     <span className="addr">
       {star && <WatchStar address={address} />}
       <a href={`#/wallet/${address}`} title={address} onClick={(e) => e.stopPropagation()}>
-        {label && <span className="label">{label} </span>}
+        {label && <span className="label">{label}</span>}
         <span className="hex">{shortAddr(address)}</span>
       </a>
       {copy && <CopyBtn text={address} />}
