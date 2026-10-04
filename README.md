@@ -55,6 +55,16 @@ npm run data     # opsional: unduh snapshot leaderboard ke public/data/
 npm run dev      # buka http://localhost:5173
 ```
 
+Tanpa koneksi ke Hyperliquid (misalnya jaringan diblokir), coba **mode demo** dengan pasar simulasi:
+
+```bash
+npm run dev:demo         # buka http://localhost:5173/demo.html
+npm run build:demo       # build demo ke dist-demo/
+```
+
+Mode demo menampilkan banner "Mode demo". Semua angka dan alamat di dalamnya (berawalan `0xdeadbeef`) adalah simulasi.
+Build produksi tidak memuat kode demo.
+
 Perintah lain:
 
 ```bash

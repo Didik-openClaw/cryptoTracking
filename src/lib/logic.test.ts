@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { TradeAggregator } from './aggregator';
 import { diffSnapshots } from './alerts';
-import { fmtPct, fmtPx, fmtUsd, isAddress, shortAddr } from './format';
+import { fmtPct, fmtPx, fmtSize, fmtUsd, isAddress, shortAddr } from './format';
 import { parseLeaderboard, toCompact } from './leaderboard';
 import { aggregateByCoin, liqDistance, parseClearinghouse, toLive } from './positions';
 import { WeightLimiter } from './rateLimiter';
@@ -48,6 +48,8 @@ describe('format', () => {
     expect(fmtPx(61234.56)).toBe('61,234.6');
     expect(fmtPx(0.000012345)).toBe('0.00001235');
     expect(fmtPx(null)).toBe('–');
+    expect(fmtSize(7_218_750_000)).toBe('7.22B');
+    expect(fmtSize(1_250_000)).toBe('1.25M');
   });
   it('formats percentages and addresses', () => {
     expect(fmtPct(0.0512, { sign: true })).toBe('+5.12%');

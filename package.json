@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:demo": "vite --open /demo.html",
     "data": "node scripts/fetch-leaderboard.mjs",
     "build": "node scripts/fetch-leaderboard.mjs && tsc -p tsconfig.json && vite build",
     "build:nodata": "tsc -p tsconfig.json && vite build",
+    "build:demo": "tsc -p tsconfig.json && vite build --mode demo",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json"

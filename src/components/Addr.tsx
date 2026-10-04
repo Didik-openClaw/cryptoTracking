@@ -33,10 +33,15 @@ export function CopyBtn({ text }: { text: string }) {
       onClick={(e) => {
         e.stopPropagation();
         e.preventDefault();
-        void navigator.clipboard?.writeText(text).then(() => {
-          setDone(true);
-          setTimeout(() => setDone(false), 1200);
-        });
+        navigator.clipboard?.writeText(text).then(
+          () => {
+            setDone(true);
+            setTimeout(() => setDone(false), 1200);
+          },
+          () => {
+            /* clipboard refused (some embedded views); the full address is in the link title */
+          },
+        );
       }}
     >
       {done ? '✓' : '⧉'}

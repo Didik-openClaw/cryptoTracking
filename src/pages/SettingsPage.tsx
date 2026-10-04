@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { UsdSelect } from '../components/ui';
+import { ConfirmButton, UsdSelect } from '../components/ui';
 import { apiStats, limiter } from '../lib/api';
 import { fmtAgo, fmtUsd } from '../lib/format';
 import { live } from '../lib/live';
@@ -59,9 +59,7 @@ export function SettingsPage() {
           <h1>Pengaturan</h1>
           <p>Semua pengaturan disimpan di browser ini.</p>
         </div>
-        <button type="button" className="btn" onClick={() => confirm('Kembalikan semua pengaturan ke default?') && settings.reset()}>
-          Reset ke default
-        </button>
+        <ConfirmButton label="Reset ke default" question="Kembalikan semua pengaturan ke default?" onConfirm={() => settings.reset()} />
       </div>
 
       <section className="panel">
@@ -158,17 +156,15 @@ export function SettingsPage() {
           <h2>Data tersimpan</h2>
         </div>
         <Row title="Hapus cache scan & daftar akun" hint="Watchlist dan pengaturan tidak ikut terhapus.">
-          <button
-            type="button"
-            className="btn danger"
-            onClick={() => {
-              if (!confirm('Hapus cache hasil scan dan leaderboard?')) return;
+          <ConfirmButton
+            danger
+            label="Hapus cache"
+            question="Hapus cache hasil scan dan leaderboard?"
+            onConfirm={() => {
               for (const k of ['scan', 'seeds', 'discovered']) remove(k);
               location.reload();
             }}
-          >
-            Hapus cache
-          </button>
+          />
         </Row>
       </section>
     </div>

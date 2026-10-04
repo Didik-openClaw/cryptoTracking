@@ -37,6 +37,7 @@ export function fmtPx(v: number | null | undefined): string {
 
 export function fmtSize(v: number): string {
   const a = Math.abs(v);
+  if (a >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
   if (a >= 1e6) return `${(v / 1e6).toFixed(2)}M`;
   if (a >= 1e4) return v.toLocaleString('en-US', { maximumFractionDigits: 0 });
   if (a >= 100) return v.toLocaleString('en-US', { maximumFractionDigits: 2 });

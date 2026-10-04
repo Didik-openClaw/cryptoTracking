@@ -7,6 +7,7 @@ import { ScannerPage } from './pages/ScannerPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { WalletPage } from './pages/WalletPage';
 import { WatchlistPage } from './pages/WatchlistPage';
+import { mode } from './lib/mode';
 import { useRoute } from './router';
 
 export function App() {
@@ -41,6 +42,12 @@ export function App() {
     <>
       <Header route={route} />
       <main>
+        {mode.demo && (
+          <div className="demo-banner">
+            <b>Mode demo.</b> Semua angka, wallet, dan trade di halaman ini adalah <b>simulasi</b>, bukan data Hyperliquid asli.
+            Versi live mengambil data langsung dari API Hyperliquid setelah website di-deploy.
+          </div>
+        )}
         {content}
         <div className="footer">
           Data publik dari API Hyperliquid (api.hyperliquid.xyz) · Bukan saran finansial · Chart oleh{' '}

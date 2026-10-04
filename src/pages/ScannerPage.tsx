@@ -4,6 +4,7 @@ import { PositionsTable } from '../components/PositionsTable';
 import { Empty, LongShortBar, Progress, Seg, StatCard, UsdSelect } from '../components/ui';
 import { fmtAgo, fmtDuration, fmtUsd, pnlClass } from '../lib/format';
 import { useWhalePositions } from '../hooks';
+import { mode } from '../lib/mode';
 import { useObservable } from '../lib/observable';
 import { aggregateByCoin } from '../lib/positions';
 import { scanner } from '../lib/scanner';
@@ -372,7 +373,7 @@ function ScanStatus({ progress, eta, rate }: { progress: number; eta: number; ra
           )}
           {seed && (
             <span className="tag" style={{ whiteSpace: 'normal' }} title="Sumber daftar akun yang dipindai">
-              {seed.count.toLocaleString('id-ID')} akun leaderboard · {SOURCE_LABEL[seed.source]}
+              {seed.count.toLocaleString('id-ID')} akun leaderboard · {mode.demo ? 'simulasi' : SOURCE_LABEL[seed.source]}
               {seed.generatedAt ? ` · ${fmtAgo(seed.generatedAt)}` : ''}
             </span>
           )}

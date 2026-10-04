@@ -72,6 +72,45 @@ export function Progress({ value }: { value: number }) {
   );
 }
 
+/** Two-step button: browser confirm() dialogs are unavailable in some embeds. */
+export function ConfirmButton({
+  label,
+  question,
+  onConfirm,
+  danger,
+}: {
+  label: ReactNode;
+  question: string;
+  onConfirm: () => void;
+  danger?: boolean;
+}) {
+  const [asking, setAsking] = useState(false);
+  if (!asking)
+    return (
+      <button type="button" className={`btn${danger ? ' danger' : ''}`} onClick={() => setAsking(true)}>
+        {label}
+      </button>
+    );
+  return (
+    <span className="row" style={{ gap: 6 }}>
+      <span className="small muted">{question}</span>
+      <button
+        type="button"
+        className="btn sm danger"
+        onClick={() => {
+          setAsking(false);
+          onConfirm();
+        }}
+      >
+        Ya
+      </button>
+      <button type="button" className="btn sm ghost" onClick={() => setAsking(false)}>
+        Batal
+      </button>
+    </span>
+  );
+}
+
 export function Spinner() {
   return <span className="spinner" aria-label="memuat" />;
 }

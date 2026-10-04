@@ -27,6 +27,7 @@ export function WatchlistPage() {
   const [io, setIo] = useState(false);
   const [ioText, setIoText] = useState('');
   const [filter, setFilter] = useState<AlertFilter>('all');
+  const [renaming, setRenaming] = useState<string | null>(null);
 
   // Opening this page counts as reading the alerts.
   useEffect(() => watchlist.markRead(), [watchlist.unread]);
@@ -154,7 +155,24 @@ export function WatchlistPage() {
                     return (
                       <tr key={e.address}>
                         <td>
-                          <Addr address={e.address} copy />
+                          {renaming === e.address ? (
+                            <input
+                              className="input"
+                              autoFocus
+                              defaultValue={e.label}
+                              placeholder={`Nama untuk ${shortAddr(e.address)}`}
+                              onBlur={(ev) => {
+                                watchlist.rename(e.address, ev.target.value);
+                                setRenaming(null);
+                              }}
+                              onKeyDown={(ev) => {
+                                if (ev.key === 'Enter') (ev.target as HTMLInputElement).blur();
+                                if (ev.key === 'Escape') setRenaming(null);
+                              }}
+                            />
+                          ) : (
+                            <Addr address={e.address} copy />
+                          )}
                           <div>
                             {i < MAX_REALTIME_USERS ? (
                               <span className="tag accent" title="Trade dipantau lewat websocket secara instan">real-time</span>
@@ -192,10 +210,7 @@ export function WatchlistPage() {
                             type="button"
                             className="icon-btn"
                             title="Ganti nama"
-                            onClick={() => {
-                              const v = prompt(`Nama untuk ${shortAddr(e.address)}`, e.label);
-                              if (v !== null) watchlist.rename(e.address, v);
-                            }}
+                            onClick={() => setRenaming(e.address)}
                           >
                             ✎
                           </button>

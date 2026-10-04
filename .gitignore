@@ -4,3 +4,4 @@ dist
 .DS_Store
 # Generated at build time by scripts/fetch-leaderboard.mjs
 public/data/leaderboard.json
+dist-demo
