@@ -5,6 +5,7 @@ import { market } from '../lib/market';
 import { useObservable } from '../lib/observable';
 import { scanner } from '../lib/scanner';
 import { watchlist } from '../lib/watchlist';
+import { THEME_LABEL, theme } from '../lib/theme';
 import { socket } from '../lib/ws';
 import { go } from '../router';
 
@@ -76,6 +77,7 @@ export function Header({ route }: { route: string[] }) {
   useObservable(socket);
   useObservable(scanner);
   useObservable(watchlist);
+  useObservable(theme);
   const [q, setQ] = useState('');
   const [err, setErr] = useState('');
   const input = useRef<HTMLInputElement>(null);
@@ -147,6 +149,16 @@ export function Header({ route }: { route: string[] }) {
           {err && <div className="search-err">{err}</div>}
         </form>
         <Clocks />
+        <button
+          type="button"
+          className="theme-btn"
+          onClick={() => theme.cycle()}
+          title="Ganti tema: Gelap → Terang → Auto (ikuti perangkat)"
+          aria-label={`Tema: ${THEME_LABEL[theme.pref]}. Klik untuk ganti.`}
+        >
+          <span className="theme-icon" aria-hidden="true" />
+          {THEME_LABEL[theme.pref]}
+        </button>
         <div className="conn">
           <span title="Websocket real-time Hyperliquid">
             <i className={`dot ${wsCls}`} />

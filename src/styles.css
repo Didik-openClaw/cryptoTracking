@@ -27,12 +27,61 @@
   --warn: var(--amber);
   --warn-bg: rgba(248, 160, 31, 0.08);
   --danger: #ff4242;
+  --on-accent: #000000; /* text on amber / green / red fills */
+  --input-bg: #000000;
+  --row-line: #0d0d0d;
+  --zebra: #070707;
+  --hover: #17110a;
+  --amber-line: rgba(248, 160, 31, 0.5);
+  --notice-text: #f5c98a;
+  --info-bg: #07090c;
+  --info-text: #b8dcf5;
+  --err-bg: #130303;
+  --err-text: #ffb3b3;
+  --toast-bg: #0a0a0a;
   --font-data: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   --font-label: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif;
   --mono: var(--font-data);
   font-family: var(--font-data);
   font-size: 12.5px;
   line-height: 1.4;
+}
+
+/* Light terminal: warm paper ground, darker amber for contrast on white. */
+:root[data-mode='light'] {
+  color-scheme: light;
+  --bg: #f7f5f0;
+  --panel: #ffffff;
+  --panel-2: #efece4;
+  --panel-3: #e4e0d6;
+  --border: #e0dcd2;
+  --border-2: #c9c3b6;
+  --text: #17150f;
+  --muted: #625d52;
+  --dim: #8f897c;
+  --amber: #a85f00;
+  --amber-dim: rgba(168, 95, 0, 0.1);
+  --yellow: #8a6400;
+  --link: #0a5fae;
+  --go: #1d8f46;
+  --long: #0d8a3c;
+  --long-bg: rgba(13, 138, 60, 0.1);
+  --short: #cc2424;
+  --short-bg: rgba(204, 36, 36, 0.1);
+  --warn-bg: rgba(168, 95, 0, 0.07);
+  --danger: #cc2424;
+  --on-accent: #ffffff;
+  --input-bg: #ffffff;
+  --row-line: #f0ede6;
+  --zebra: #faf8f3;
+  --hover: #fdf1dc;
+  --amber-line: rgba(168, 95, 0, 0.45);
+  --notice-text: #6b4200;
+  --info-bg: #eef5fc;
+  --info-text: #134a7c;
+  --err-bg: #fdeeee;
+  --err-text: #9b1c1c;
+  --toast-bg: #ffffff;
 }
 
 * {
@@ -164,7 +213,7 @@ th.num {
 }
 .brand .logo {
   background: var(--amber);
-  color: #000;
+  color: var(--on-accent);
   padding: 1px 5px;
   font-family: var(--font-data);
   letter-spacing: 0;
@@ -176,7 +225,7 @@ th.num {
   align-items: center;
   position: relative;
   border: 1px solid var(--border-2);
-  background: #000;
+  background: var(--input-bg);
 }
 .cmd:focus-within {
   border-color: var(--amber);
@@ -200,7 +249,7 @@ th.num {
 .go {
   border: none;
   background: var(--go);
-  color: #000;
+  color: var(--on-accent);
   font-family: var(--font-label);
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -213,9 +262,9 @@ th.num {
   left: -1px;
   right: -1px;
   padding: 5px 8px;
-  background: #140000;
+  background: var(--err-bg);
   border: 1px solid var(--short);
-  color: #ffb3b3;
+  color: var(--err-text);
   font-size: 11px;
   z-index: 60;
 }
@@ -293,11 +342,11 @@ th.num {
 }
 .fnbar a.on {
   background: var(--amber);
-  color: #000;
+  color: var(--on-accent);
 }
 .fnbar a.on b,
 .fnbar a.on .code {
-  color: #000;
+  color: var(--on-accent);
 }
 .badge-count {
   display: inline-block;
@@ -389,7 +438,7 @@ main {
 }
 .fn {
   background: var(--amber);
-  color: #000;
+  color: var(--on-accent);
   font-family: var(--font-data);
   font-size: 12px;
   font-weight: 600;
@@ -543,7 +592,7 @@ main {
 .btn.primary {
   background: var(--amber);
   border-color: var(--amber);
-  color: #000;
+  color: var(--on-accent);
   font-weight: 600;
 }
 .btn.ghost {
@@ -600,7 +649,7 @@ main {
 .input,
 select.input,
 textarea.input {
-  background: #000;
+  background: var(--input-bg);
   border: 1px solid var(--border-2);
   border-radius: 0;
   padding: 4px 7px;
@@ -637,15 +686,15 @@ textarea.input {
 }
 .seg button.on {
   background: var(--amber);
-  color: #000;
+  color: var(--on-accent);
 }
 .seg button.on.long {
   background: var(--long);
-  color: #000;
+  color: var(--on-accent);
 }
 .seg button.on.short {
   background: var(--short);
-  color: #000;
+  color: var(--on-accent);
 }
 .check {
   display: inline-flex;
@@ -676,7 +725,7 @@ td {
   vertical-align: middle;
 }
 td {
-  border-bottom: 1px solid #0d0d0d;
+  border-bottom: 1px solid var(--row-line);
 }
 th {
   position: sticky;
@@ -704,10 +753,10 @@ th .arrow {
   margin-left: 3px;
 }
 tbody tr:nth-child(even) td {
-  background: #070707;
+  background: var(--zebra);
 }
 tbody tr:hover td {
-  background: #17110a;
+  background: var(--hover);
 }
 tr.clickable {
   cursor: pointer;
@@ -753,7 +802,7 @@ tr.flash td {
 }
 .tag.accent {
   color: var(--amber);
-  border-color: rgba(248, 160, 31, 0.5);
+  border-color: var(--amber-line);
 }
 .tag.warn {
   color: var(--amber);
@@ -849,14 +898,14 @@ tr.flash td {
 }
 .tabs button.on {
   background: var(--amber);
-  color: #000;
+  color: var(--on-accent);
 }
 .tabs button .tag {
   margin-left: 5px;
 }
 .tabs button.on .tag {
-  color: #000;
-  border-color: #000;
+  color: var(--on-accent);
+  border-color: var(--on-accent);
 }
 
 .empty {
@@ -871,18 +920,18 @@ tr.flash td {
   padding: 7px 10px;
   background: var(--warn-bg);
   border-left: 2px solid var(--amber);
-  color: #f5c98a;
+  color: var(--notice-text);
   font-size: 11.5px;
 }
 .notice.info {
-  background: #07090c;
+  background: var(--info-bg);
   border-left-color: var(--link);
-  color: #b8dcf5;
+  color: var(--info-text);
 }
 .notice.error {
-  background: #120303;
+  background: var(--err-bg);
   border-left-color: var(--short);
-  color: #ffb3b3;
+  color: var(--err-text);
 }
 .spinner {
   display: inline-block;
@@ -967,7 +1016,7 @@ tr.flash td {
   width: min(380px, calc(100vw - 32px));
 }
 .toast {
-  background: #0a0a0a;
+  background: var(--toast-bg);
   border: 1px solid var(--border-2);
   border-left: 2px solid var(--amber);
   padding: 7px 10px;
@@ -1031,7 +1080,7 @@ tr.flash td {
   padding: 6px 10px;
   border: 1px dashed var(--amber);
   background: var(--warn-bg);
-  color: #f5c98a;
+  color: var(--notice-text);
   font-size: 11.5px;
 }
 .demo-banner b {
@@ -1146,7 +1195,7 @@ tr.flash td {
   border-bottom: 1px solid var(--border);
 }
 .news-item:hover {
-  background: #0d0a05;
+  background: var(--hover);
 }
 .news-item.flash {
   animation: news-flash 2s ease-out;
@@ -1247,4 +1296,32 @@ a.news-title:hover {
 }
 .news-empty b {
   color: var(--text);
+}
+
+/* ---------- theme toggle ---------- */
+.theme-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-2);
+  background: transparent;
+  color: var(--muted);
+  padding: 3px 8px;
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.theme-btn:hover {
+  color: var(--text);
+  border-color: var(--amber);
+}
+.theme-icon {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  background: linear-gradient(90deg, currentColor 50%, transparent 50%);
 }

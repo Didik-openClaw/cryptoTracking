@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { ConfirmButton, UsdSelect } from '../components/ui';
+import { ConfirmButton, Seg, UsdSelect } from '../components/ui';
 import { apiStats, limiter } from '../lib/api';
 import { fmtAgo, fmtUsd } from '../lib/format';
 import { live } from '../lib/live';
@@ -8,6 +8,7 @@ import { useObservable } from '../lib/observable';
 import { scanner } from '../lib/scanner';
 import { settings, type Settings } from '../lib/settings';
 import { remove } from '../lib/storage';
+import { THEME_LABEL, theme, type ThemePref } from '../lib/theme';
 import { socket } from '../lib/ws';
 
 function Row({ title, hint, children }: { title: string; hint?: ReactNode; children: ReactNode }) {
@@ -46,6 +47,7 @@ export function SettingsPage() {
   useObservable(scanner);
   useObservable(socket);
   useObservable(news);
+  useObservable(theme);
   const [, tick] = useState(0);
   useEffect(() => {
     const t = setInterval(() => tick((x) => x + 1), 2000);
@@ -65,6 +67,19 @@ export function SettingsPage() {
         </div>
         <ConfirmButton label="Reset ke default" question="Kembalikan semua pengaturan ke default?" onConfirm={() => settings.reset()} />
       </div>
+
+      <section className="panel">
+        <div className="panel-head">
+          <h2>Tampilan</h2>
+        </div>
+        <Row title="Tema" hint="Auto mengikuti pengaturan gelap/terang perangkat. Bisa juga diganti dari tombol di header.">
+          <Seg<ThemePref>
+            value={theme.pref}
+            onChange={(v) => theme.set(v)}
+            options={(['dark', 'light', 'auto'] as ThemePref[]).map((v) => ({ value: v, label: THEME_LABEL[v] }))}
+          />
+        </Row>
+      </section>
 
       <section className="panel">
         <div className="panel-head">

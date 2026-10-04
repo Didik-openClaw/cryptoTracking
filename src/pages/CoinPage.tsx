@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Addr } from '../components/Addr';
 import { NewsPanel } from '../components/NewsPanel';
 import { Opened } from '../components/Opened';
-import { LEVEL_COLORS, PriceChart, type ChartLine } from '../components/Charts';
+import { PriceChart, type ChartLine } from '../components/Charts';
 import { Empty, LiqDist, LongShortBar, Pnl, Seg, StatCard, UsdSelect } from '../components/ui';
 import { fmtPct, fmtPx, fmtSize, fmtUsd, pnlClass } from '../lib/format';
 import { market } from '../lib/market';
 import { openTimes } from '../lib/openTimes';
+import { levelColors, theme } from '../lib/theme';
 import { useObservable } from '../lib/observable';
 import { settings } from '../lib/settings';
 import type { LivePosition } from '../lib/types';
@@ -35,17 +36,20 @@ export function CoinPage({ coin }: { coin: string }) {
     return size ? ps.reduce((t, p) => t + p.entryPx * p.size, 0) / size : 0;
   };
 
+  const tv = useObservable(theme);
+  const LEVEL = levelColors();
   const lines = useMemo<ChartLine[]>(() => {
     const top = [...positions].sort((a, b) => b.notional - a.notional).slice(0, lineLimit);
     const out: ChartLine[] = [];
     for (const p of top) {
-      const color = p.side === 'long' ? LEVEL_COLORS.long : LEVEL_COLORS.short;
+      const color = p.side === 'long' ? LEVEL.long : LEVEL.short;
       const tag = `${p.side === 'long' ? 'L' : 'S'} ${fmtUsd(p.notional, { decimals: 1 })}`;
       if (showEntry) out.push({ price: p.entryPx, color, title: `Entry ${tag}` });
-      if (showLiq && p.liquidationPx) out.push({ price: p.liquidationPx, color: LEVEL_COLORS.liq, title: `Liq ${tag}`, dashed: true });
+      if (showLiq && p.liquidationPx) out.push({ price: p.liquidationPx, color: LEVEL.liq, title: `Liq ${tag}`, dashed: true });
     }
     return out;
-  }, [positions, lineLimit, showEntry, showLiq]);
+    // tv: level colours follow the theme
+  }, [positions, lineLimit, showEntry, showLiq, tv]);
 
   // Liquidation map: walk outward from the mark price and accumulate notional
   // that would be force-closed if price got there.
@@ -130,15 +134,15 @@ export function CoinPage({ coin }: { coin: string }) {
           <PriceChart coin={coin} lines={lines} />
           <div className="legend" style={{ marginTop: 8 }}>
             <span>
-              <i style={{ borderColor: LEVEL_COLORS.long }} />
+              <i style={{ borderColor: LEVEL.long }} />
               Entry long
             </span>
             <span>
-              <i style={{ borderColor: LEVEL_COLORS.short }} />
+              <i style={{ borderColor: LEVEL.short }} />
               Entry short
             </span>
             <span>
-              <i className="dash" style={{ borderColor: LEVEL_COLORS.liq }} />
+              <i className="dash" style={{ borderColor: LEVEL.liq }} />
               Harga likuidasi
             </span>
           </div>

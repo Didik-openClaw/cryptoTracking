@@ -19,12 +19,11 @@ import {
 } from 'lightweight-charts';
 import { getCandles } from '../lib/api';
 import { fmtPx, fmtUsd, num } from '../lib/format';
+import { useObservable } from '../lib/observable';
+import { chartPalette, theme } from '../lib/theme';
 import { Seg, Spinner } from './ui';
 
-const COLORS = { long: '#23d160', short: '#ff4242', text: '#8c8c8c', grid: '#141414', border: '#262626', amber: '#f8a01f' };
-
-/** Colours for horizontal levels drawn on price charts (also used by their legends). */
-export const LEVEL_COLORS = { long: COLORS.long, short: COLORS.short, liq: '#ffd23f' };
+type Palette = ReturnType<typeof chartPalette>;
 
 // Explicit formatters: the id-ID locale writes times as "14.10", which reads
 // like a date on a time axis. Times are shown in the viewer's local timezone.
@@ -47,23 +46,38 @@ function tickMark(t: Time, type: TickMarkType): string {
   }
 }
 
-function baseChart(el: HTMLElement, priceFormatter: (p: number) => string): IChartApi {
+/** The theme-dependent part of the chart options (re-applied when the theme changes). */
+function themeOptions(p: Palette) {
+  return {
+    layout: { background: { type: ColorType.Solid, color: p.bg }, textColor: p.text },
+    grid: { vertLines: { color: p.grid }, horzLines: { color: p.grid } },
+    rightPriceScale: { borderColor: p.border },
+    timeScale: { borderColor: p.border },
+    crosshair: {
+      vertLine: { color: p.crosshair, labelBackgroundColor: p.amber },
+      horzLine: { color: p.crosshair, labelBackgroundColor: p.amber },
+    },
+  };
+}
+
+const candleOptions = (p: Palette) => ({
+  upColor: p.long,
+  downColor: p.short,
+  borderUpColor: p.long,
+  borderDownColor: p.short,
+  wickUpColor: p.long,
+  wickDownColor: p.short,
+});
+
+function baseChart(el: HTMLElement, priceFormatter: (p: number) => string, p: Palette): IChartApi {
+  const t = themeOptions(p);
   return createChart(el, {
     autoSize: true,
-    layout: {
-      background: { type: ColorType.Solid, color: '#000000' },
-      textColor: COLORS.text,
-      fontSize: 11,
-      fontFamily: "'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace",
-    },
-    grid: { vertLines: { color: COLORS.grid }, horzLines: { color: COLORS.grid } },
-    rightPriceScale: { borderColor: COLORS.border },
-    timeScale: { borderColor: COLORS.border, timeVisible: true, secondsVisible: false, tickMarkFormatter: tickMark },
-    crosshair: {
-      mode: CrosshairMode.Normal,
-      vertLine: { color: '#5c4012', labelBackgroundColor: COLORS.amber },
-      horzLine: { color: '#5c4012', labelBackgroundColor: COLORS.amber },
-    },
+    layout: { ...t.layout, fontSize: 11, fontFamily: "'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace" },
+    grid: t.grid,
+    rightPriceScale: t.rightPriceScale,
+    timeScale: { ...t.timeScale, timeVisible: true, secondsVisible: false, tickMarkFormatter: tickMark },
+    crosshair: { mode: CrosshairMode.Normal, ...t.crosshair },
     localization: {
       priceFormatter,
       timeFormatter: (t: Time) => {
@@ -112,18 +126,13 @@ export function PriceChart({
   const priceLines = useRef<IPriceLine[]>([]);
   const [interval, setIv] = useState<Interval>(defaultInterval);
   const [state, setState] = useState<{ loading: boolean; error: string; bars: number }>({ loading: true, error: '', bars: 0 });
+  const tv = useObservable(theme);
 
   useEffect(() => {
     if (!box.current) return;
-    const c = baseChart(box.current, fmtPx);
-    const s = c.addSeries(CandlestickSeries, {
-      upColor: COLORS.long,
-      downColor: COLORS.short,
-      borderUpColor: COLORS.long,
-      borderDownColor: COLORS.short,
-      wickUpColor: COLORS.long,
-      wickDownColor: COLORS.short,
-    });
+    const p = chartPalette();
+    const c = baseChart(box.current, fmtPx, p);
+    const s = c.addSeries(CandlestickSeries, candleOptions(p));
     chart.current = c;
     series.current = s;
     markerApi.current = createSeriesMarkers(s, []);
@@ -162,6 +171,13 @@ export function PriceChart({
     return () => ctl.abort();
   }, [coin, interval]);
 
+  // Re-colour in place when the theme changes.
+  useEffect(() => {
+    const p = chartPalette();
+    chart.current?.applyOptions(themeOptions(p));
+    series.current?.applyOptions(candleOptions(p));
+  }, [tv]);
+
   // Horizontal levels (keyed by content: callers rebuild the array every render)
   const linesKey = JSON.stringify(lines);
   useEffect(() => {
@@ -183,9 +199,10 @@ export function PriceChart({
   }, [linesKey]);
 
   // Fill markers, snapped to the candle they fall in
-  const markersKey = `${interval}|${state.bars}|${markers.length}|${markers[0]?.time ?? 0}`;
+  const markersKey = `${interval}|${state.bars}|${markers.length}|${markers[0]?.time ?? 0}|${tv}`;
   useEffect(() => {
     if (!markerApi.current) return;
+    const p = chartPalette();
     const step = INTERVAL_MS[interval];
     const from = Date.now() - step * LOOKBACK_BARS;
     const ms: SeriesMarker<Time>[] = markers
@@ -195,7 +212,7 @@ export function PriceChart({
         (m): SeriesMarker<Time> => ({
           time: ((Math.floor(m.time / step) * step) / 1000) as UTCTimestamp,
           position: m.side === 'buy' ? 'belowBar' : 'aboveBar',
-          color: m.side === 'buy' ? COLORS.long : COLORS.short,
+          color: m.side === 'buy' ? p.long : p.short,
           shape: m.side === 'buy' ? 'arrowUp' : 'arrowDown',
           text: m.text,
         }),
@@ -227,34 +244,36 @@ export function PriceChart({
 /** Account value (area) or PnL (baseline around zero) history from the `portfolio` endpoint. */
 export function HistoryChart({ data, mode }: { data: [number, string][]; mode: 'equity' | 'pnl' }) {
   const box = useRef<HTMLDivElement>(null);
+  const tv = useObservable(theme);
   useEffect(() => {
     if (!box.current) return;
-    const c = baseChart(box.current, (p) => fmtUsd(p));
+    const p = chartPalette();
+    const c = baseChart(box.current, (v) => fmtUsd(v), p);
     const points = new Map<number, number>();
     for (const [t, v] of data) points.set(Math.floor(t / 1000), num(v));
     const series = [...points].sort((a, b) => a[0] - b[0]).map(([time, value]) => ({ time: time as UTCTimestamp, value }));
     if (mode === 'equity') {
       c.addSeries(AreaSeries, {
-        lineColor: COLORS.amber,
-        topColor: 'rgba(248,160,31,0.28)',
-        bottomColor: 'rgba(248,160,31,0.02)',
+        lineColor: p.amber,
+        topColor: p.areaTop,
+        bottomColor: p.areaBottom,
         lineWidth: 2,
       }).setData(series);
     } else {
       c.addSeries(BaselineSeries, {
         baseValue: { type: 'price', price: 0 },
-        topLineColor: COLORS.long,
-        topFillColor1: 'rgba(35,209,96,0.28)',
-        topFillColor2: 'rgba(35,209,96,0.02)',
-        bottomLineColor: COLORS.short,
-        bottomFillColor1: 'rgba(255,66,66,0.02)',
-        bottomFillColor2: 'rgba(255,66,66,0.28)',
+        topLineColor: p.long,
+        topFillColor1: p.longFill,
+        topFillColor2: 'rgba(0,0,0,0)',
+        bottomLineColor: p.short,
+        bottomFillColor1: 'rgba(0,0,0,0)',
+        bottomFillColor2: p.shortFill,
         lineWidth: 2,
       }).setData(series);
     }
     c.timeScale().fitContent();
     return () => c.remove();
-  }, [data, mode]);
+  }, [data, mode, tv]);
   return (
     <div className="chart-box sm">
       <div ref={box} style={{ position: 'absolute', inset: 0 }} />

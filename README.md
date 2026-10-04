@@ -18,6 +18,9 @@ ticker harga berjalan, jam JKT/UTC/NY, dan status line di bawah.
 
 Ketik alamat `0x…`, nama coin (`BTC`), atau kode fungsi di command line lalu tekan `GO`.
 
+Tema **Gelap** (default), **Terang**, atau **Auto** (mengikuti pengaturan perangkat) bisa dipilih dari tombol di header atau
+di Pengaturan; chart ikut berganti warna dan pilihan disimpan di browser.
+
 Website ini statis (HTML + JavaScript) dan tidak butuh server. Semua data diambil langsung dari API publik Hyperliquid oleh
 browser pengunjung.
 

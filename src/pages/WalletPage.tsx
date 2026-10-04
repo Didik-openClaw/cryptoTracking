@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { CopyBtn } from '../components/Addr';
 import { NewsPanel } from '../components/NewsPanel';
 import { OpenedText } from '../components/Opened';
-import { HistoryChart, LEVEL_COLORS, PriceChart, type ChartLine, type ChartMarker } from '../components/Charts';
+import { HistoryChart, PriceChart, type ChartLine, type ChartMarker } from '../components/Charts';
 import { Empty, LiqDist, Pnl, Seg, SideBadge, Spinner, StatCard, Tabs } from '../components/ui';
 import {
   getClearinghouseState,
@@ -36,6 +36,7 @@ import { useObservable } from '../lib/observable';
 import { fillsService } from '../lib/fills';
 import { findOpenTime, openTimes } from '../lib/openTimes';
 import { parseClearinghouse, toLive } from '../lib/positions';
+import { levelColors, theme } from '../lib/theme';
 import { scanner } from '../lib/scanner';
 import { computeFillStats, computeTraderStats, roundTrips } from '../lib/stats';
 import type { HLFill, HLFundingEntry, HLLedgerEntry, HLOpenOrder, HLPortfolio, HLSpotBalance, WalletSnapshot } from '../lib/types';
@@ -395,6 +396,8 @@ function OpenCells({ info }: { info: ReturnType<typeof findOpenTime> }) {
 }
 
 function ChartTab({ positions, fills }: { positions: ReturnType<typeof toLive>[]; fills: HLFill[] | null }) {
+  useObservable(theme);
+  const LEVEL = levelColors();
   const coins = useMemo(() => {
     const set = new Set(positions.map((p) => p.coin));
     for (const f of fills ?? []) if (!f.coin.startsWith('@') && !f.coin.includes('/')) set.add(f.coin);
@@ -407,8 +410,8 @@ function ChartTab({ positions, fills }: { positions: ReturnType<typeof toLive>[]
   const pos = positions.find((p) => p.coin === active);
   const lines: ChartLine[] = pos
     ? [
-        { price: pos.entryPx, color: pos.side === 'long' ? LEVEL_COLORS.long : LEVEL_COLORS.short, title: `Entry ${pos.side.toUpperCase()}` },
-        ...(pos.liquidationPx ? [{ price: pos.liquidationPx, color: LEVEL_COLORS.liq, title: 'Likuidasi', dashed: true }] : []),
+        { price: pos.entryPx, color: pos.side === 'long' ? LEVEL.long : LEVEL.short, title: `Entry ${pos.side.toUpperCase()}` },
+        ...(pos.liquidationPx ? [{ price: pos.liquidationPx, color: LEVEL.liq, title: 'Likuidasi', dashed: true }] : []),
       ]
     : [];
   const markers: ChartMarker[] = (fills ?? [])
