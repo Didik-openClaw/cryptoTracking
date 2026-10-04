@@ -124,7 +124,7 @@ export function Header({ route }: { route: string[] }) {
     <header className="term-head">
       <div className="cmdbar">
         <a className="brand" href="#/">
-          <span className="logo">HL</span>Whale Terminal
+          <span className="logo">DTY</span>Crypto Terminal
         </a>
         <form className="cmd" onSubmit={submit}>
           <span className="prompt">&gt;</span>

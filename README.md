@@ -1,4 +1,4 @@
-# HL Whale Tracker: Pelacak Posisi Jumbo Hyperliquid
+# DTY Crypto Terminal: Pelacak Posisi Jumbo Hyperliquid
 
 Website untuk mencari dan memantau trader di jaringan **Hyperliquid** yang memegang posisi perp bernilai jutaan dollar:
 siapa yang **LONG**, siapa yang **SHORT**, berapa besar, kapan posisinya dibuka, di harga berapa masuk, di mana likuidasinya,

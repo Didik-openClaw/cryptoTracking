@@ -18,7 +18,7 @@ async function fetchFeed([source, url]) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 20_000);
   try {
-    const res = await fetch(url, { signal: ctl.signal, headers: { 'User-Agent': 'hl-whale-tracker (+github pages build)' } });
+    const res = await fetch(url, { signal: ctl.signal, headers: { 'User-Agent': 'dty-crypto-terminal (+github pages build)' } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return parseRss(await res.text(), source);
   } finally {
