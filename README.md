@@ -29,6 +29,7 @@ browser pengunjung.
 | **Long vs Short** (`#/coins`) | Per coin: total whale long/short, jumlah wallet, net, porsi dari open interest, rata-rata entry, uPnL tiap sisi, funding, dan OI. |
 | **Detail coin** (`#/coin/BTC`) | Daftar "Siapa yang LONG" dan "Siapa yang SHORT", chart candlestick dengan garis entry dan likuidasi whale, serta **peta likuidasi** (berapa nilai posisi yang terlikuidasi jika harga turun/naik ke level tertentu). |
 | **Top Whale** (`#/top`) | 20 wallet whale paling profit (PnL atau ROI 24 jam/7 hari/30 hari/semua waktu). Whale = akun ≥ $1M, akun ≥ $10M, atau sedang memegang posisi jumbo. Per wallet: win rate, profit factor, jumlah trade (menang/kalah), rata-rata menang/kalah, expectancy, trade terbaik/terburuk, rata-rata lama pegang posisi, bias long/short, posisi saat ini. Ringkasan: total PnL, median win rate & profit factor, net posisi top whale, dan coin terbesar di posisi mereka. |
+| **Panel Berita & Wire** (di samping chart) | Di halaman coin dan tab Chart Trade wallet. **BERITA**: headline kripto terbaru (CoinDesk Data API, cadangan CryptoCompare, lalu snapshot RSS CoinDesk/Cointelegraph/The Block/Decrypt dari build), otomatis difilter ke coin yang dibuka atau ke Hyperliquid, refresh tiap 2 menit, dengan sentimen dan ringkasan. **WIRE**: kabar real-time dari data Hyperliquid: blok trade whale, posisi whale baru, harga bergerak tajam dalam 15 menit, funding ekstrem, lonjakan open interest, dan whale yang mendekati likuidasi. |
 | **Live Trade Besar** (`#/live`) | Market order ≥ $1M secara real-time lewat websocket. Fill-fill kecil dari satu order digabung jadi satu baris. Ditampilkan juga posisi trader saat ini, maker terbesar, arus beli/jual 5 menit/15 menit/1 jam, dan trader paling agresif. Trader yang masuk besar otomatis ikut dipindai scanner. |
 | **Detail wallet** (`#/wallet/0x…`) | Nilai akun, leverage efektif, grafik PnL/equity (24 jam/7 hari/30 hari/semua), semua posisi, chart trade dengan marker beli/jual, open order (termasuk TP/SL), riwayat trade (2000 fill terakhir), funding, deposit/withdraw/transfer, saldo spot, dan statistik (volume, win rate, PnL terealisasi, fee, likuidasi). |
 | **Watchlist & Alert** (`#/watchlist`) | Simpan wallet favorit dan beri nama. Alert muncul untuk setiap trade, buka/tutup/tambah/kurangi posisi, balik arah, posisi yang mendekati likuidasi, dan (opsional) whale baru dari scanner. Notifikasi dikirim lewat browser, bunyi, dan log. Watchlist bisa di-import/export. |
@@ -68,6 +69,8 @@ Hasil scan, watchlist, alert, waktu buka posisi, statistik trader, dan pengatura
   Naikkan "Jumlah akun yang dipindai" di Pengaturan untuk cakupan lebih luas, dengan konsekuensi satu putaran scan jadi lebih lama.
 - Riwayat trade per wallet dibatasi API Hyperliquid: 2000 fill terbaru.
 - Hanya perp di DEX utama Hyperliquid (bukan pasar HIP-3).
+- Berita memakai API publik pihak ketiga. Tanpa API key berlaku batas request gratis; isi key CoinDesk Data di Pengaturan
+  bila perlu. Kalau API tidak bisa diakses, dipakai snapshot RSS dari build terakhir (paling lama 3 jam).
 
 ## Menjalankan di komputer sendiri
 
@@ -75,7 +78,7 @@ Butuh Node.js 20 atau lebih baru.
 
 ```bash
 npm install
-npm run data     # opsional: unduh snapshot leaderboard ke public/data/
+npm run data     # opsional: unduh snapshot leaderboard & berita ke public/data/
 npm run dev      # buka http://localhost:5173
 ```
 

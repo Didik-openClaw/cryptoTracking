@@ -1,10 +1,12 @@
 import { limiter } from './api';
 import { live } from './live';
 import { market } from './market';
+import { news } from './news';
 import { openTimes } from './openTimes';
 import { scanner } from './scanner';
 import { settings } from './settings';
 import { watchlist } from './watchlist';
+import { wire } from './wire';
 import { socket } from './ws';
 
 let started = false;
@@ -35,5 +37,7 @@ export function startApp(): void {
   market.start();
   live.start();
   watchlist.start();
+  wire.start();
+  news.start();
   void scanner.start();
 }

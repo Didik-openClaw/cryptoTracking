@@ -56,6 +56,9 @@ const COINS: Coin[] = [
 const coinMap = new Map(COINS.map((c) => [c.name, c]));
 const open0 = new Map(COINS.map((c) => [c.name, c.px * (1 + (rnd() - 0.5) * 0.08)])); // 24h-ago price
 const funding = new Map(COINS.map((c) => [c.name, (rnd() - 0.35) * 0.00004]));
+// Two crowded trades so the WIRE has funding extremes to report.
+funding.set('HYPE', 0.000132);
+funding.set('kPEPE', -0.000115);
 
 function weightedCoin(): Coin {
   const total = COINS.reduce((t, c) => t + c.weight, 0);

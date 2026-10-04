@@ -1,6 +1,8 @@
 // Number formatting follows the convention traders see on exchanges
 // ($1.25M, 12.5K); labels and dates are Indonesian.
 
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
 export function num(v: string | number | null | undefined): number {
   if (v === null || v === undefined) return 0;
   const n = typeof v === 'number' ? v : parseFloat(v);
@@ -67,18 +69,18 @@ const dtf = new Intl.DateTimeFormat('id-ID', {
   hour: '2-digit',
   minute: '2-digit',
 });
-const tf = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 export function fmtDateTime(ms: number): string {
   return dtf.format(new Date(ms));
 }
 
+/** "09:03:25" in the viewer's timezone. */
 export function fmtTime(ms: number): string {
-  return tf.format(new Date(ms));
+  const d = new Date(ms);
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
 }
 
 export const MONTHS_ID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-const pad2 = (n: number) => String(n).padStart(2, '0');
 
 /** "02 Okt 14:05" in the viewer's timezone (colon, unlike id-ID's "14.05"). */
 export function fmtShortDateTime(ms: number): string {

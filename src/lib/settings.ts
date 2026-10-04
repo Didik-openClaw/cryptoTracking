@@ -27,6 +27,9 @@ export interface Settings {
   alertNewWhaleMinUsd: number;
   alertSound: boolean;
   browserNotifications: boolean;
+
+  /** Optional CoinDesk Data / CryptoCompare key for the news panel (higher rate limits). */
+  newsApiKey: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -50,6 +53,8 @@ export const DEFAULT_SETTINGS: Settings = {
   alertNewWhaleMinUsd: 10_000_000,
   alertSound: true,
   browserNotifications: true,
+
+  newsApiKey: '',
 };
 
 class SettingsStore extends Observable {

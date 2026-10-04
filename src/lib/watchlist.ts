@@ -70,7 +70,7 @@ class Watchlist extends Observable {
     this.syncRealtime();
 
     scanner.onNewWhale(({ address, position: p }) => {
-      if (!settings.value.alertNewWhale || this.has(address)) return;
+      if (!settings.value.alertNewWhale || this.has(address) || p.positionValue < settings.value.alertNewWhaleMinUsd) return;
       const seed = scanner.seedMap.get(address);
       this.pushAlert({
         kind: 'whale',

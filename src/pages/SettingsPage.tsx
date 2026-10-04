@@ -3,6 +3,7 @@ import { ConfirmButton, UsdSelect } from '../components/ui';
 import { apiStats, limiter } from '../lib/api';
 import { fmtAgo, fmtUsd } from '../lib/format';
 import { live } from '../lib/live';
+import { news, newsSourceLabel } from '../lib/news';
 import { useObservable } from '../lib/observable';
 import { scanner } from '../lib/scanner';
 import { settings, type Settings } from '../lib/settings';
@@ -44,6 +45,7 @@ export function SettingsPage() {
   useObservable(settings);
   useObservable(scanner);
   useObservable(socket);
+  useObservable(news);
   const [, tick] = useState(0);
   useEffect(() => {
     const t = setInterval(() => tick((x) => x + 1), 2000);
@@ -122,6 +124,43 @@ export function SettingsPage() {
         </Row>
         <Row title="Cek wallet watchlist setiap (detik)" hint="Untuk wallet di luar 10 teratas yang tidak real-time.">
           <NumberInput k="watchPollSec" min={5} max={600} />
+        </Row>
+      </section>
+
+      <section className="panel">
+        <div className="panel-head">
+          <h2>Berita</h2>
+        </div>
+        <Row
+          title="API key CoinDesk Data (opsional)"
+          hint={
+            <>
+              Tanpa key, berita tetap dimuat dengan batas request gratis. Key gratis dari{' '}
+              <a href="https://developers.coindesk.com/" target="_blank" rel="noreferrer">
+                developers.coindesk.com
+              </a>{' '}
+              menaikkan batasnya. Disimpan hanya di browser ini.
+            </>
+          }
+        >
+          <input
+            id="news-api-key"
+            className="input"
+            type="password"
+            autoComplete="off"
+            style={{ width: 260 }}
+            placeholder="kosongkan jika tidak ada"
+            value={s.newsApiKey}
+            onChange={(e) => settings.update({ newsApiKey: e.target.value })}
+            onBlur={() => void news.refresh()}
+          />
+        </Row>
+        <Row title="Sumber aktif" hint={news.error ? `Gagal: ${news.error}` : 'Diperbarui otomatis setiap 2 menit.'}>
+          <span className="muted">
+            {news.status === 'unavailable'
+              ? 'tidak aktif (mode demo)'
+              : `${newsSourceLabel(news.source)} · ${news.items.length} headline${news.updatedAt ? ` · ${fmtAgo(news.updatedAt)}` : ''}`}
+          </span>
         </Row>
       </section>
 

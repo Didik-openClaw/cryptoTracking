@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Addr } from '../components/Addr';
+import { NewsPanel } from '../components/NewsPanel';
 import { Opened } from '../components/Opened';
 import { LEVEL_COLORS, PriceChart, type ChartLine } from '../components/Charts';
 import { Empty, LiqDist, LongShortBar, Pnl, Seg, StatCard, UsdSelect } from '../components/ui';
@@ -112,35 +113,38 @@ export function CoinPage({ coin }: { coin: string }) {
         />
       </div>
 
-      <section className="panel">
-        <div className="panel-head">
-          <h2>Level entry &amp; likuidasi whale</h2>
-          <div className="row">
-            <label className="check small">
-              <input type="checkbox" checked={showEntry} onChange={(e) => setShowEntry(e.target.checked)} /> Entry
-            </label>
-            <label className="check small">
-              <input type="checkbox" checked={showLiq} onChange={(e) => setShowLiq(e.target.checked)} /> Likuidasi
-            </label>
-            <Seg value={lineLimit} onChange={setLineLimit} options={LINE_LIMITS.map((v) => ({ value: v, label: `Top ${v}` }))} />
+      <div className="grid-chart">
+        <section className="panel">
+          <div className="panel-head">
+            <h2>Level entry &amp; likuidasi whale</h2>
+            <div className="row">
+              <label className="check small">
+                <input type="checkbox" checked={showEntry} onChange={(e) => setShowEntry(e.target.checked)} /> Entry
+              </label>
+              <label className="check small">
+                <input type="checkbox" checked={showLiq} onChange={(e) => setShowLiq(e.target.checked)} /> Likuidasi
+              </label>
+              <Seg value={lineLimit} onChange={setLineLimit} options={LINE_LIMITS.map((v) => ({ value: v, label: `Top ${v}` }))} />
+            </div>
           </div>
-        </div>
-        <PriceChart coin={coin} lines={lines} />
-        <div className="legend" style={{ marginTop: 8 }}>
-          <span>
-            <i style={{ borderColor: LEVEL_COLORS.long }} />
-            Entry long
-          </span>
-          <span>
-            <i style={{ borderColor: LEVEL_COLORS.short }} />
-            Entry short
-          </span>
-          <span>
-            <i className="dash" style={{ borderColor: LEVEL_COLORS.liq }} />
-            Harga likuidasi
-          </span>
-        </div>
-      </section>
+          <PriceChart coin={coin} lines={lines} />
+          <div className="legend" style={{ marginTop: 8 }}>
+            <span>
+              <i style={{ borderColor: LEVEL_COLORS.long }} />
+              Entry long
+            </span>
+            <span>
+              <i style={{ borderColor: LEVEL_COLORS.short }} />
+              Entry short
+            </span>
+            <span>
+              <i className="dash" style={{ borderColor: LEVEL_COLORS.liq }} />
+              Harga likuidasi
+            </span>
+          </div>
+        </section>
+        <NewsPanel coin={coin} />
+      </div>
 
       <div className="grid-2">
         <SideList title="Siapa yang LONG" tone="long" rows={longs} />

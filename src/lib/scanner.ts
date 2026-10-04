@@ -301,7 +301,8 @@ class Scanner extends Observable {
   }
 
   private detectNewWhales(prev: WalletSnapshot | undefined, snap: WalletSnapshot): void {
-    const min = settings.value.alertNewWhaleMinUsd;
+    // Fire from the smaller of the two thresholds; each listener applies its own minimum.
+    const min = Math.min(settings.value.alertNewWhaleMinUsd, settings.value.minPositionUsd);
     for (const p of snap.positions) {
       if (p.positionValue < min) continue;
       const before = prev?.positions.find((q) => q.coin === p.coin && q.side === p.side);

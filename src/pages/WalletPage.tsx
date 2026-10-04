@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CopyBtn } from '../components/Addr';
+import { NewsPanel } from '../components/NewsPanel';
 import { OpenedText } from '../components/Opened';
 import { HistoryChart, LEVEL_COLORS, PriceChart, type ChartLine, type ChartMarker } from '../components/Charts';
 import { Empty, LiqDist, Pnl, Seg, SideBadge, Spinner, StatCard, Tabs } from '../components/ui';
@@ -427,7 +428,10 @@ function ChartTab({ positions, fills }: { positions: ReturnType<typeof toLive>[]
         </select>
         <span className="dim small">▲ beli · ▼ jual (dari {fills?.length ?? 0} fill terakhir)</span>
       </div>
-      <PriceChart key={active} coin={active} lines={lines} markers={markers} />
+      <div className="grid-chart">
+        <PriceChart key={active} coin={active} lines={lines} markers={markers} />
+        <NewsPanel key={active} coin={active} />
+      </div>
     </div>
   );
 }

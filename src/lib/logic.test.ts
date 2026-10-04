@@ -4,6 +4,8 @@ import { diffSnapshots } from './alerts';
 import { fmtAge, fmtPct, fmtPx, fmtSize, fmtUsd, isAddress, shortAddr } from './format';
 import { parseLeaderboard, toCompact } from './leaderboard';
 import { findOpenTime } from './openTimes';
+import { matchesCoin, parseNews, type NewsItem } from './news';
+import { changeOver, crossing } from './wire';
 import { aggregateByCoin, liqDistance, parseClearinghouse, toLive } from './positions';
 import { WeightLimiter } from './rateLimiter';
 import { computeFillStats, computeTraderStats, roundTrips } from './stats';
@@ -374,5 +376,68 @@ describe('round trips & trader stats', () => {
     expect(empty.winRate).toBeNull();
     expect(empty.profitFactor).toBeNull();
     expect(empty.trades).toBe(0);
+  });
+});
+
+describe('news', () => {
+  it('parses CoinDesk Data and CryptoCompare formats', () => {
+    const coindesk = {
+      Data: [
+        {
+          ID: 1,
+          TITLE: 'Hyperliquid whale opens $40M BTC long',
+          URL: 'https://example.com/1',
+          PUBLISHED_ON: 1_790_000_000,
+          BODY: '<p>Body</p>',
+          SENTIMENT: 'POSITIVE',
+          SOURCE_DATA: { NAME: 'CoinDesk' },
+          CATEGORY_DATA: [{ CATEGORY: 'BTC' }, { CATEGORY: 'TRADING' }],
+        },
+      ],
+    };
+    const cc = {
+      Data: [
+        { id: '7', title: 'Solana ETF filing', url: 'https://example.com/7', published_on: 1_790_000_100, body: 'x', categories: 'SOL|Regulation', source_info: { name: 'The Block' } },
+        { id: '8', title: 'bad url', url: 'javascript:alert(1)', published_on: 1 },
+      ],
+    };
+    const [a] = parseNews(coindesk);
+    expect(a).toMatchObject({ id: '1', source: 'CoinDesk', publishedAt: 1_790_000_000_000, body: 'Body', tags: ['BTC', 'TRADING'], sentiment: 'pos' });
+    const b = parseNews(cc);
+    expect(b).toHaveLength(1);
+    expect(b[0]).toMatchObject({ source: 'The Block', tags: ['SOL', 'REGULATION'], sentiment: null });
+    expect(parseNews({ items: [a] })).toEqual([a]);
+  });
+
+  it('matches headlines to coins by tag, ticker or name', () => {
+    const item = (title: string, tags: string[] = []): NewsItem => ({ id: title, title, url: 'https://x', source: 's', publishedAt: 0, body: '', tags, sentiment: null });
+    expect(matchesCoin(item('Bitcoin slips below $60K'), 'BTC')).toBe(true);
+    expect(matchesCoin(item('Market wrap', ['ETH']), 'ETH')).toBe(true);
+    expect(matchesCoin(item('$SOL rallies'), 'SOL')).toBe(true);
+    expect(matchesCoin(item('A solution for custody'), 'SOL')).toBe(false);
+    expect(matchesCoin(item('Hyperliquid volume record'), 'HYPE')).toBe(true);
+    expect(matchesCoin(item('PEPE memecoin surges'), 'kPEPE')).toBe(true);
+  });
+});
+
+describe('wire helpers', () => {
+  it('measures change over a window', () => {
+    const hist: [number, number][] = [
+      [0, 100],
+      [60_000, 101],
+      [120_000, 103],
+    ];
+    expect(changeOver(hist, 120_000, 60_000)).toBeCloseTo(103 / 101 - 1);
+    expect(changeOver(hist, 120_000, 120_000)).toBeCloseTo(0.03);
+    expect(changeOver(hist, 120_000, 200_000)).toBeNull();
+  });
+
+  it('fires a crossing once until re-armed', () => {
+    const armed = new Map<string, boolean>();
+    expect(crossing(armed, 'x', true, false)).toBe(true);
+    expect(crossing(armed, 'x', true, false)).toBe(false);
+    expect(crossing(armed, 'x', false, false)).toBe(false); // in the hysteresis band
+    expect(crossing(armed, 'x', false, true)).toBe(false);
+    expect(crossing(armed, 'x', true, false)).toBe(true);
   });
 });
