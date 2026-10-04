@@ -110,8 +110,8 @@ npm run build        # build produksi ke dist/ (termasuk unduh snapshot leaderbo
 
 ## Jual akses (Rp 500.000 / bulan)
 
-Situs ini dijual per bulan dengan **kode akses**. Gembok berjalan di server (Netlify), jadi file aplikasi tidak dikirim ke
-browser yang belum punya kode valid.
+Situs ini dijual per bulan dengan **kode akses**. Gembok berjalan di server (VPS atau Netlify), jadi file aplikasi tidak
+dikirim ke browser yang belum punya kode valid.
 
 | Alamat | Untuk | Isi |
 | --- | --- | --- |
@@ -130,7 +130,14 @@ Aturan akses:
 - Satu kode bisa dipakai di 2 perangkat (bisa diubah di admin). "Keluar dari perangkat ini" atau **Reset** di admin membebaskan slot.
 - Kode yang dicabut berhenti bekerja saat terminal dibuka/dimuat ulang, paling lambat 24 jam.
 
-### Setup di Netlify (gratis, repo tetap private)
+### Deploy di VPS (Hostinger)
+
+Panduan SSH langkah demi langkah: [deploy/README.md](deploy/README.md). Ringkasnya: Node.js 22 menjalankan
+`server/node.mjs` sebagai service systemd (`deploy/dty.service`), Nginx di depannya (`deploy/nginx.conf`), HTTPS dari
+Let's Encrypt, dan cron menjalankan `scripts/deploy.sh` tiap 3 jam untuk memperbarui snapshot leaderboard & berita.
+Data tersimpan di `.data/access.json`.
+
+### Setup di Netlify (alternatif, gratis)
 
 1. Daftar di [netlify.com](https://www.netlify.com/) → **Add new site → Import an existing project → GitHub** → pilih repo ini
    dan branch `claude/epic-ramanujan-osgblm`. Pengaturan build otomatis terbaca dari `netlify.toml`.
@@ -145,7 +152,7 @@ Aturan akses:
 Data kode akses, pesanan, dan pengaturan disimpan di Netlify Blobs (penyimpanan bawaan Netlify, tidak perlu database).
 Mengganti `SESSION_SECRET` mengeluarkan semua pembeli dari sesinya; kode akses tetap berlaku dan bisa dimasukkan lagi.
 
-Jangan deploy situs ini ke hosting statis biasa (GitHub Pages dll.): di sana tidak ada gembok, sehingga terminal terbuka
+Jangan deploy situs ini ke hosting statis biasa (GitHub Pages, shared hosting tanpa Node, dll.): di sana tidak ada gembok, sehingga terminal terbuka
 untuk semua orang.
 
 ### Batasan penjualan
@@ -171,12 +178,14 @@ src/
   pages/          halaman terminal
   beli/           halaman beli (publik)
   admin/          panel admin
-server/access.ts                kode akses, sesi, gembok & API (dipakai Netlify dan server lokal)
+server/access.ts                kode akses, sesi, gembok & API (dipakai VPS, Netlify, dan server lokal)
+server/node.mjs                 server Node untuk VPS/lokal: gembok + API + file statis, data di .data/access.json
+deploy/                         panduan & konfigurasi VPS (systemd, Nginx)
+scripts/deploy.sh               build ulang tanpa downtime (dipakai cron & update kode di VPS)
 netlify/edge-functions/gate.ts  gembok di depan semua file terminal
 netlify/functions/api.mts       /api/* (login, pesanan, admin) + penyimpanan Netlify Blobs
 scripts/fetch-leaderboard.mjs   snapshot leaderboard saat build
 scripts/fetch-news.mjs          snapshot berita RSS saat build
-scripts/serve-local.mjs         tiruan Netlify untuk mencoba alur jual-beli secara lokal
 ```
 
 ---

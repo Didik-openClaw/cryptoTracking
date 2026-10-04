@@ -7,3 +7,7 @@ public/data/leaderboard.json
 public/data/news.json
 dist-demo
 .data
+dist-next
+dist-old
+.deploy.lock
+.env

@@ -1,0 +1,27 @@
+# systemd service for the Node server (server/node.mjs) on a VPS.
+# Install: cp deploy/dty.service /etc/systemd/system/ && systemctl enable --now dty
+# Assumes the app user "dty" with the repo cloned to /home/dty/app and its
+# secrets (SESSION_SECRET, ADMIN_PASSWORD) in /home/dty/app/.env.
+[Unit]
+Description=DTY Crypto Terminal
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=dty
+Group=dty
+WorkingDirectory=/home/dty/app
+EnvironmentFile=/home/dty/app/.env
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=8888
+ExecStart=/usr/bin/node server/node.mjs
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

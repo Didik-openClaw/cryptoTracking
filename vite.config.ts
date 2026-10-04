@@ -11,6 +11,7 @@ import react from '@vitejs/plugin-react';
  * so those pages must not load files from the protected dist/assets.
  *
  * `base: './'` keeps every path relative, so the build works from any host or sub-path.
+ * OUT_DIR overrides the output folder (scripts/deploy.sh builds into dist-next, then swaps it in).
  */
 const PAGES: Record<string, string> = { demo: 'demo', beli: 'beli', admin: 'admin' };
 
@@ -20,6 +21,7 @@ export default defineConfig(({ mode }) => {
     base: './',
     plugins: [react()],
     build: {
+      outDir: process.env.OUT_DIR || 'dist',
       // React + lightweight-charts is ~170 KB gzipped; one bundle is fine for this app.
       chunkSizeWarningLimit: 800,
       ...(page && {
@@ -30,7 +32,7 @@ export default defineConfig(({ mode }) => {
     },
     test: {
       environment: 'node',
-      include: ['src/**/*.test.ts', 'server/**/*.test.ts', 'scripts/**/*.test.mjs'],
+      include: ['src/**/*.test.ts', 'server/**/*.test.{ts,mjs}', 'scripts/**/*.test.mjs'],
     },
   };
 });

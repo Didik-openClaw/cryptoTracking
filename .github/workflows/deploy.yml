@@ -1,8 +1,8 @@
 name: CI
 
-# The site is hosted on Netlify (see netlify.toml), which builds and deploys
-# on every push. This workflow tests every push and, on a schedule, asks
-# Netlify to rebuild so the bundled leaderboard and news snapshots stay fresh.
+# Tests every push. When the site is hosted on Netlify (netlify.toml), the
+# schedule also asks Netlify to rebuild so the bundled leaderboard and news
+# snapshots stay fresh; a VPS does this itself with cron (deploy/README.md).
 
 on:
   push:

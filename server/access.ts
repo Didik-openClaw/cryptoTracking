@@ -2,8 +2,8 @@
  * Paid access for DTY Crypto Terminal.
  *
  * Runtime-agnostic (Web Crypto + Fetch API only): used by the Netlify edge
- * gate (Deno), the Netlify API function (Node), the local server in
- * scripts/serve-local.mjs and the unit tests. Keep to erasable TypeScript
+ * gate (Deno), the Netlify API function (Node), the VPS/local server in
+ * server/node.mjs and the unit tests. Keep to erasable TypeScript
  * syntax and `.ts` import paths so Deno and Node's type stripping can load it.
  *
  * Model

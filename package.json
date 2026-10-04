@@ -11,7 +11,8 @@
     "build:pages": "tsc -p tsconfig.json && vite build && vite build --mode demo && vite build --mode beli && vite build --mode admin",
     "build:nodata": "npm run build:pages",
     "build:demo": "tsc -p tsconfig.json && vite build --mode demo --outDir dist-demo --emptyOutDir",
-    "serve:local": "node scripts/serve-local.mjs",
+    "serve:local": "node server/node.mjs",
+    "start": "NODE_ENV=production node server/node.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json"
