@@ -1,24 +1,22 @@
-name: Build & deploy ke GitHub Pages
+name: CI
+
+# The site is hosted on Netlify (see netlify.toml), which builds and deploys
+# on every push. This workflow tests every push and, on a schedule, asks
+# Netlify to rebuild so the bundled leaderboard and news snapshots stay fresh.
 
 on:
-  # Every push runs the tests and build; only the default branch deploys.
   push:
-  # Rebuild periodically so the bundled leaderboard and news snapshots stay fresh.
+  pull_request:
   schedule:
     - cron: '17 */3 * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
-  build:
+  test:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,18 +27,14 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
 
-  deploy:
-    needs: build
-    # Scheduled runs only ever run on the default branch.
-    if: github.event_name != 'push' || github.ref_name == github.event.repository.default_branch
+  refresh-data:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Trigger a Netlify rebuild
+        env:
+          HOOK: ${{ secrets.NETLIFY_BUILD_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then echo "Secret NETLIFY_BUILD_HOOK belum diisi; dilewati."; exit 0; fi
+          curl -fsS -X POST -d '{}' "$HOOK"

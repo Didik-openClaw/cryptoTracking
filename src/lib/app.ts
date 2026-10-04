@@ -1,3 +1,4 @@
+import { access } from './access';
 import { limiter } from './api';
 import { live } from './live';
 import { market } from './market';
@@ -33,6 +34,7 @@ export function startApp(): void {
   // Keep the latest results for the next visit.
   window.addEventListener('pagehide', () => scanner.persist());
 
+  access.start();
   socket.start();
   market.start();
   live.start();

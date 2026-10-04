@@ -6,6 +6,7 @@ import { useObservable } from '../lib/observable';
 import { scanner } from '../lib/scanner';
 import { watchlist } from '../lib/watchlist';
 import { THEME_LABEL, theme } from '../lib/theme';
+import { AccessChip } from './AccessChip';
 import { socket } from '../lib/ws';
 import { go } from '../router';
 
@@ -149,6 +150,7 @@ export function Header({ route }: { route: string[] }) {
           {err && <div className="search-err">{err}</div>}
         </form>
         <Clocks />
+        <AccessChip />
         <button
           type="button"
           className="theme-btn"

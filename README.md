@@ -77,48 +77,83 @@ Hasil scan, watchlist, alert, waktu buka posisi, statistik trader, dan pengatura
 
 ## Menjalankan di komputer sendiri
 
-Butuh Node.js 20 atau lebih baru.
+Butuh Node.js 22.18 atau lebih baru.
 
 ```bash
 npm install
 npm run data     # opsional: unduh snapshot leaderboard & berita ke public/data/
-npm run dev      # buka http://localhost:5173
+npm run dev      # terminal tanpa gembok akses: http://localhost:5173
 ```
 
 Tanpa koneksi ke Hyperliquid (misalnya jaringan diblokir), coba **mode demo** dengan pasar simulasi:
 
 ```bash
-npm run dev:demo         # buka http://localhost:5173/demo.html
-npm run build:demo       # build demo ke dist-demo/
+npm run dev:demo         # buka http://localhost:5173/demo/
 ```
 
 Mode demo menampilkan banner "Mode demo". Semua angka dan alamat di dalamnya (berawalan `0xdeadbeef`) adalah simulasi.
 Build produksi tidak memuat kode demo.
 
+Mencoba alur jual-beli akses lengkap di komputer sendiri (gembok, halaman beli, admin):
+
+```bash
+npm run build:pages
+ADMIN_PASSWORD=rahasia npm run serve:local   # http://localhost:8888 (data di .data/access.json)
+```
+
 Perintah lain:
 
 ```bash
-npm test         # unit test
-npm run build    # build produksi ke dist/ (termasuk unduh snapshot leaderboard)
-npm run preview  # coba hasil build
+npm test             # unit test
+npm run build        # build produksi ke dist/ (termasuk unduh snapshot leaderboard & berita)
 ```
 
-## Deploy (gratis)
+## Jual akses (Rp 500.000 / bulan)
 
-### GitHub Pages (otomatis)
+Situs ini dijual per bulan dengan **kode akses**. Gembok berjalan di server (Netlify), jadi file aplikasi tidak dikirim ke
+browser yang belum punya kode valid.
 
-Workflow `.github/workflows/deploy.yml` menjalankan test dan build di setiap push, lalu men-deploy dari **branch default**
-repo (sekarang `claude/epic-ramanujan-osgblm`; nanti `main` kalau branch default diganti).
+| Alamat | Untuk | Isi |
+| --- | --- | --- |
+| `/` | pembeli | Terminal. Tanpa akses, pengunjung otomatis diarahkan ke `/beli/`. Header menampilkan countdown sisa akses. |
+| `/beli/` | publik | Harga, harga coret, countdown promo, paket 1/3/6/12 bulan, form pesan → WhatsApp admin, info pembayaran, kolom aktivasi kode, status akses & tombol perpanjang. |
+| `/demo/` | publik | Demo gratis dengan pasar simulasi. |
+| `/admin/` | Anda | Pesanan masuk, buat kode akses per bulan + kirim via WhatsApp, daftar pelanggan dengan countdown sisa akses, perpanjang, cabut/pulihkan, reset perangkat, dan pengaturan harga/promo/nomor WA/info bayar. |
 
-1. Satu kali saja: di GitHub buka **Settings → Pages**, lalu pada **Source** pilih **GitHub Actions**.
-2. Jalankan ulang workflow (tab **Actions → Build & deploy ke GitHub Pages → Run workflow**) atau push commit baru.
-3. Website tersedia di `https://<username>.github.io/<nama-repo>/`.
+**Alur jual:** pembeli isi form di `/beli/` → pesanan tercatat di admin dan WhatsApp Anda terbuka dengan nomor pesanan →
+pembeli transfer/QRIS dan kirim bukti → Anda klik **Buat kode** di pesanan → **Kirim via WhatsApp** → pembeli masukkan kode
+→ terminal terbuka. Perpanjangan: klik **+1 bln** di admin; kode yang sama langsung bertambah 30 hari.
 
-Workflow juga berjalan sendiri setiap 3 jam untuk memperbarui snapshot leaderboard dan berita.
+Aturan akses:
 
-### Vercel / Netlify / Cloudflare Pages
+- 1 bulan = 30 hari. Saat kode habis, terminal mengarahkan pembeli ke halaman perpanjang.
+- Satu kode bisa dipakai di 2 perangkat (bisa diubah di admin). "Keluar dari perangkat ini" atau **Reset** di admin membebaskan slot.
+- Kode yang dicabut berhenti bekerja saat terminal dibuka/dimuat ulang, paling lambat 24 jam.
 
-Hubungkan repo ini, lalu atur build command `npm run build` dan output directory `dist`.
+### Setup di Netlify (gratis, repo tetap private)
+
+1. Daftar di [netlify.com](https://www.netlify.com/) → **Add new site → Import an existing project → GitHub** → pilih repo ini
+   dan branch `claude/epic-ramanujan-osgblm`. Pengaturan build otomatis terbaca dari `netlify.toml`.
+2. Sebelum deploy, buka **Site configuration → Environment variables** dan tambahkan:
+   - `SESSION_SECRET`: teks acak panjang (minimal 32 karakter), misalnya hasil `openssl rand -hex 32`.
+   - `ADMIN_PASSWORD`: password panel admin, buat yang kuat.
+3. Deploy. Buka `https://<nama-situs>.netlify.app/admin/`, masuk dengan `ADMIN_PASSWORD`, lalu isi **Pengaturan jual**:
+   nomor WhatsApp, info rekening/QRIS, dan tanggal berakhir promo (untuk countdown).
+4. Opsional, agar snapshot leaderboard & berita diperbarui tiap 3 jam: di Netlify buat **Build hook**, lalu simpan URL-nya
+   sebagai secret `NETLIFY_BUILD_HOOK` di GitHub (**Settings → Secrets and variables → Actions**).
+
+Data kode akses, pesanan, dan pengaturan disimpan di Netlify Blobs (penyimpanan bawaan Netlify, tidak perlu database).
+Mengganti `SESSION_SECRET` mengeluarkan semua pembeli dari sesinya; kode akses tetap berlaku dan bisa dimasukkan lagi.
+
+Jangan deploy situs ini ke hosting statis biasa (GitHub Pages dll.): di sana tidak ada gembok, sehingga terminal terbuka
+untuk semua orang.
+
+### Batasan penjualan
+
+- Data berasal dari API publik Hyperliquid; yang dijual adalah kemudahan dan analisis di terminal ini. Demo publik memuat
+  kode aplikasi yang sama dengan pasar simulasi.
+- Pembayaran dicek manual oleh Anda (transfer/QRIS lewat WhatsApp). Untuk pembayaran otomatis perlu payment gateway
+  (Midtrans/Xendit) dan akun merchant.
 
 ## Struktur kode
 
@@ -133,8 +168,15 @@ src/
     watchlist.ts    watchlist, polling, alert (alerts.ts: deteksi perubahan posisi)
     market.ts       harga, funding, open interest
   components/     komponen UI (tabel, chart, header)
-  pages/          halaman
+  pages/          halaman terminal
+  beli/           halaman beli (publik)
+  admin/          panel admin
+server/access.ts                kode akses, sesi, gembok & API (dipakai Netlify dan server lokal)
+netlify/edge-functions/gate.ts  gembok di depan semua file terminal
+netlify/functions/api.mts       /api/* (login, pesanan, admin) + penyimpanan Netlify Blobs
 scripts/fetch-leaderboard.mjs   snapshot leaderboard saat build
+scripts/fetch-news.mjs          snapshot berita RSS saat build
+scripts/serve-local.mjs         tiruan Netlify untuk mencoba alur jual-beli secara lokal
 ```
 
 ---

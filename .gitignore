@@ -6,3 +6,4 @@ dist
 public/data/leaderboard.json
 public/data/news.json
 dist-demo
+.data
