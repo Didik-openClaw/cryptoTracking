@@ -79,12 +79,35 @@ interface Pos {
   type: 'cross' | 'isolated';
   openedAt: number;
 }
+interface Fill {
+  coin: string;
+  px: number;
+  sz: number;
+  side: 'A' | 'B';
+  start: number; // signed position before the fill
+  time: number;
+  dir: string;
+  closedPnl: number;
+}
+
+function dirOf(start: number, delta: number): string {
+  const after = start + delta;
+  if (Math.abs(start) < 1e-12) return delta > 0 ? 'Open Long' : 'Open Short';
+  if (Math.sign(start) === Math.sign(delta)) return start > 0 ? 'Open Long' : 'Open Short';
+  if (Math.abs(after) > 1e-12 && Math.sign(after) !== Math.sign(start)) return start > 0 ? 'Long > Short' : 'Short > Long';
+  return start > 0 ? 'Close Long' : 'Close Short';
+}
+
+function makeFill(coin: string, px: number, delta: number, start: number, time: number, closedPnl = 0): Fill {
+  return { coin, px, sz: Math.abs(delta), side: delta > 0 ? 'B' : 'A', start, time, dir: dirOf(start, delta), closedPnl };
+}
+
 interface Account {
   address: string;
   name: string | null;
   cash: number; // collateral excluding open PnL
   positions: Pos[];
-  history: { coin: string; px: number; sz: number; side: 'A' | 'B'; time: number; dir: string; closedPnl: number }[];
+  history: Fill[];
 }
 
 const NOW = Date.now();
@@ -134,24 +157,28 @@ for (let i = 0; i < 70; i++) {
 const byAddr = new Map(accounts.map((a) => [a.address, a]));
 const retail = Array.from({ length: 300 }, () => fakeAddr());
 
-// Fill history so wallet pages have trades to show.
+// Fill history consistent with the positions held now: an opening fill (and
+// sometimes a later add) for each position, plus closed round trips on other
+// coins. Open times shown in the app are reconstructed from these fills.
 for (const a of accounts.slice(0, 46)) {
   const r = mulberry32(parseInt(a.address.slice(10, 18), 16));
-  const coins = a.positions.length ? a.positions.map((p) => p.coin) : [pick(COINS, r).name];
-  for (let i = 0; i < 80; i++) {
-    const coin = coinMap.get(pick(coins, r))!;
-    const buy = r() < 0.5;
-    const opening = r() < 0.55;
-    a.history.push({
-      coin: coin.name,
-      px: coin.px * (1 + (r() - 0.5) * 0.15),
-      sz: (2e4 + r() * 6e5) / coin.px,
-      side: buy ? 'B' : 'A',
-      time: NOW - i * (3 + r() * 8) * 3_600_000,
-      dir: opening ? (buy ? 'Open Long' : 'Open Short') : buy ? 'Close Short' : 'Close Long',
-      closedPnl: opening ? 0 : (r() - 0.42) * 60_000,
-    });
+  for (const p of a.positions) {
+    const first = r() < 0.5 ? p.szi : p.szi * 0.6;
+    a.history.push(makeFill(p.coin, p.entry * (1 + (r() - 0.5) * 0.004), first, 0, p.openedAt));
+    if (first !== p.szi) a.history.push(makeFill(p.coin, p.entry, p.szi - first, first, p.openedAt + (NOW - p.openedAt) * r()));
   }
+  const others = COINS.filter((c) => !a.positions.some((p) => p.coin === c.name));
+  for (let i = 0; i < 30; i++) {
+    const coin = pick(others, r);
+    const sz = ((2e4 + r() * 8e5) / coin.px) * (r() < 0.5 ? 1 : -1);
+    const t0 = NOW - (1 + r() * 29) * 86_400_000;
+    const t1 = t0 + r() * 86_400_000;
+    const px0 = coin.px * (1 + (r() - 0.5) * 0.15);
+    const px1 = px0 * (1 + (r() - 0.5) * 0.06);
+    a.history.push(makeFill(coin.name, px0, sz, 0, t0));
+    a.history.push(makeFill(coin.name, px1, -sz, sz, t1, (px1 - px0) * sz));
+  }
+  a.history.sort((x, y) => y.time - x.time);
 }
 
 function liqPx(p: Pos, a: Account): number | null {
@@ -338,8 +365,8 @@ function info(body: Record<string, unknown>): unknown {
         ];
       });
     case 'userFills':
-      return (a?.history ?? []).map((h, i) => ({
-        coin: h.coin, px: String(h.px), sz: String(h.sz), side: h.side, time: h.time, startPosition: '0', dir: h.dir,
+      return (a?.history ?? []).slice(0, 2000).map((h, i) => ({
+        coin: h.coin, px: String(h.px), sz: String(h.sz), side: h.side, time: h.time, startPosition: String(h.start), dir: h.dir,
         closedPnl: String(h.closedPnl), hash: `0x${hex(64)}`, oid: i, crossed: true, fee: String(h.px * h.sz * 0.00035), tid: h.time + i,
       }));
     case 'portfolio':
@@ -406,23 +433,28 @@ function whaleTrade() {
   // Mostly add to the existing direction, sometimes take profit.
   const buy = cur ? (Math.random() < 0.72 ? cur.szi > 0 : cur.szi < 0) : Math.random() < 0.55;
   const delta = (buy ? 1 : -1) * (usd / coin.px);
-  let dir: string;
+  const start = cur?.szi ?? 0;
+  let closedPnl = 0;
   if (!cur) {
     a.positions.push({ coin: coin.name, szi: delta, entry: coin.px, lev: Math.min(pick(LEVS, Math.random), coin.maxLev), type: 'cross', openedAt: Date.now() });
-    dir = buy ? 'Open Long' : 'Open Short';
   } else if (Math.sign(delta) === Math.sign(cur.szi)) {
     cur.entry = (cur.entry * Math.abs(cur.szi) + coin.px * Math.abs(delta)) / (Math.abs(cur.szi) + Math.abs(delta));
     cur.szi += delta;
-    dir = cur.szi > 0 ? 'Open Long' : 'Open Short';
   } else {
     const closing = Math.min(Math.abs(delta), Math.abs(cur.szi));
-    a.cash += closing * (coin.px - cur.entry) * Math.sign(cur.szi);
-    dir = cur.szi > 0 ? 'Close Long' : 'Close Short';
+    closedPnl = closing * (coin.px - cur.entry) * Math.sign(cur.szi);
+    a.cash += closedPnl;
     cur.szi += delta;
     if (Math.abs(cur.szi) * coin.px < 5e4) a.positions = a.positions.filter((p) => p !== cur);
+    else if (Math.sign(cur.szi) !== Math.sign(start)) {
+      cur.entry = coin.px; // flipped: the remainder is a new position
+      cur.openedAt = Date.now();
+    }
   }
+  const fill = makeFill(coin.name, coin.px, delta, start, Date.now(), closedPnl);
+  a.history.unshift(fill);
   const fills = emitOrder(coin, a.address, buy, usd);
-  for (const f of fills) f.fill.dir = dir;
+  for (const f of fills) Object.assign(f.fill, { dir: fill.dir, startPosition: String(start) });
   for (const l of userFillListeners) l(fills);
 }
 

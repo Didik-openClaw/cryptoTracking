@@ -106,10 +106,12 @@ export function ScannerPage() {
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>Scanner Whale Hyperliquid</h1>
+          <h1>
+            <span className="fn">WHAL</span>Scanner Whale
+          </h1>
           <p>
-            Semua trader dengan posisi perp ≥ <b>{fmtUsd(s.minPositionUsd, { decimals: 0 })}</b>: siapa yang LONG, siapa
-            yang SHORT, berapa besar, di harga berapa masuk, dan di mana likuidasinya. Harga diperbarui real-time.
+            Posisi perp ≥ {fmtUsd(s.minPositionUsd, { decimals: 0 })}: siapa LONG, siapa SHORT, ukuran, waktu buka, entry, dan
+            likuidasi. Harga real-time.
           </p>
         </div>
         <div className="row">
@@ -355,7 +357,7 @@ function ScanStatus({ progress, eta, rate }: { progress: number; eta: number; ra
   const pass = scanner.pass;
   const seed = scanner.seed;
   return (
-    <section className="panel" style={{ padding: '12px 16px' }}>
+    <section className="panel">
       <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
         <div className="row small">
           <b>
@@ -383,15 +385,15 @@ function ScanStatus({ progress, eta, rate }: { progress: number; eta: number; ra
         <div className="row">
           {scanner.isRunning ? (
             <button type="button" className="btn sm" onClick={() => scanner.pause()}>
-              ⏸ Jeda
+              Jeda
             </button>
           ) : (
             <button type="button" className="btn sm primary" onClick={() => void scanner.start()}>
-              ▶ Lanjutkan
+              Lanjutkan
             </button>
           )}
           <button type="button" className="btn sm" onClick={() => scanner.restartPass()} title="Mulai ulang dari akun terbesar">
-            ↻ Pass baru
+            Pass baru
           </button>
           <button
             type="button"
@@ -400,7 +402,7 @@ function ScanStatus({ progress, eta, rate }: { progress: number; eta: number; ra
             onClick={() => void scanner.loadSeed(true)}
             title="Unduh ulang leaderboard terbaru langsung dari Hyperliquid"
           >
-            ⇣ Leaderboard terbaru
+            Leaderboard terbaru
           </button>
         </div>
       </div>

@@ -74,7 +74,7 @@ export function diffSnapshots(
           kind: 'liq',
           coin,
           severity: 'danger',
-          title: `⚠ ${sideLabel(p)} ${coin} dekat likuidasi (${fmtPct(dist)})`,
+          title: `${sideLabel(p)} ${coin} dekat likuidasi (${fmtPct(dist)})`,
           body: `Mark ${fmtPx(markOf(p))} · likuidasi ${fmtPx(p.liquidationPx)} · ${describe(p)}`,
         });
         liqArmed.set(coin, false);

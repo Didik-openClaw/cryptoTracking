@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Addr } from '../components/Addr';
-import { PriceChart, type ChartLine } from '../components/Charts';
+import { Opened } from '../components/Opened';
+import { LEVEL_COLORS, PriceChart, type ChartLine } from '../components/Charts';
 import { Empty, LiqDist, LongShortBar, Pnl, Seg, StatCard, UsdSelect } from '../components/ui';
 import { fmtPct, fmtPx, fmtSize, fmtUsd, pnlClass } from '../lib/format';
 import { market } from '../lib/market';
+import { openTimes } from '../lib/openTimes';
 import { useObservable } from '../lib/observable';
 import { settings } from '../lib/settings';
 import type { LivePosition } from '../lib/types';
@@ -36,10 +38,10 @@ export function CoinPage({ coin }: { coin: string }) {
     const top = [...positions].sort((a, b) => b.notional - a.notional).slice(0, lineLimit);
     const out: ChartLine[] = [];
     for (const p of top) {
-      const color = p.side === 'long' ? '#2fd67b' : '#ff5470';
+      const color = p.side === 'long' ? LEVEL_COLORS.long : LEVEL_COLORS.short;
       const tag = `${p.side === 'long' ? 'L' : 'S'} ${fmtUsd(p.notional, { decimals: 1 })}`;
       if (showEntry) out.push({ price: p.entryPx, color, title: `Entry ${tag}` });
-      if (showLiq && p.liquidationPx) out.push({ price: p.liquidationPx, color: '#f5b13d', title: `Liq ${tag}`, dashed: true });
+      if (showLiq && p.liquidationPx) out.push({ price: p.liquidationPx, color: LEVEL_COLORS.liq, title: `Liq ${tag}`, dashed: true });
     }
     return out;
   }, [positions, lineLimit, showEntry, showLiq]);
@@ -67,8 +69,8 @@ export function CoinPage({ coin }: { coin: string }) {
             <a href="#/coins">← Long vs Short</a>
           </div>
           <h1>
-            {coin}-PERP <span className="muted" style={{ fontWeight: 500 }}>{fmtPx(mark)}</span>{' '}
-            <span className={`small ${pnlClass(change)}`}>{fmtPct(change, { sign: true })}</span>
+            <span className="fn">{coin}</span>Perp · Whale Long/Short <span className="h1-value">{fmtPx(mark)}</span>
+            <span className={`h1-value small ${pnlClass(change)}`}>{fmtPct(change, { sign: true })}</span>
           </h1>
           {info && (
             <p className="small">
@@ -126,15 +128,15 @@ export function CoinPage({ coin }: { coin: string }) {
         <PriceChart coin={coin} lines={lines} />
         <div className="legend" style={{ marginTop: 8 }}>
           <span>
-            <i style={{ borderColor: '#2fd67b' }} />
+            <i style={{ borderColor: LEVEL_COLORS.long }} />
             Entry long
           </span>
           <span>
-            <i style={{ borderColor: '#ff5470' }} />
+            <i style={{ borderColor: LEVEL_COLORS.short }} />
             Entry short
           </span>
           <span>
-            <i className="dash" style={{ borderColor: '#f5b13d' }} />
+            <i className="dash" style={{ borderColor: LEVEL_COLORS.liq }} />
             Harga likuidasi
           </span>
         </div>
@@ -160,6 +162,9 @@ export function CoinPage({ coin }: { coin: string }) {
 }
 
 function SideList({ title, tone, rows }: { title: string; tone: 'long' | 'short'; rows: LivePosition[] }) {
+  useEffect(() => {
+    for (const p of rows.slice(0, 40)) openTimes.request(p.address);
+  }, [rows]);
   return (
     <section className="panel">
       <div className="panel-head">
@@ -180,6 +185,7 @@ function SideList({ title, tone, rows }: { title: string; tone: 'long' | 'short'
                 <th className="num">Jarak</th>
                 <th className="num">Lev</th>
                 <th className="num">uPnL</th>
+                <th title="Umur posisi sejak dibuka (m = menit, j = jam, hr = hari)">Umur</th>
               </tr>
             </thead>
             <tbody>
@@ -200,6 +206,9 @@ function SideList({ title, tone, rows }: { title: string; tone: 'long' | 'short'
                   <td className="num">{p.leverage}x</td>
                   <td className="num">
                     <Pnl v={p.livePnl} />
+                  </td>
+                  <td>
+                    <Opened address={p.address} coin={p.coin} side={p.side} compact />
                   </td>
                 </tr>
               ))}

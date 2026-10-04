@@ -76,6 +76,25 @@ export function fmtTime(ms: number): string {
   return tf.format(new Date(ms));
 }
 
+export const MONTHS_ID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/** "02 Okt 14:05" in the viewer's timezone (colon, unlike id-ID's "14.05"). */
+export function fmtShortDateTime(ms: number): string {
+  const d = new Date(ms);
+  return `${pad2(d.getDate())} ${MONTHS_ID[d.getMonth()]} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+/** Compact age: 45m, 3j 20m, 2hr 5j, 41hr (m = menit, j = jam, hr = hari). */
+export function fmtAge(ms: number, now = Date.now()): string {
+  const m = Math.max(0, Math.floor((now - ms) / 60_000));
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}j ${m % 60}m`;
+  const d = Math.floor(h / 24);
+  return d < 30 ? `${d}hr ${h % 24}j` : `${d}hr`;
+}
+
 export function fmtAgo(ms: number, now = Date.now()): string {
   const s = Math.max(0, Math.round((now - ms) / 1000));
   if (s < 60) return `${s} dtk lalu`;

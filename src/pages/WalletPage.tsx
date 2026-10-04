@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CopyBtn } from '../components/Addr';
-import { HistoryChart, PriceChart, type ChartLine, type ChartMarker } from '../components/Charts';
+import { OpenedText } from '../components/Opened';
+import { HistoryChart, LEVEL_COLORS, PriceChart, type ChartLine, type ChartMarker } from '../components/Charts';
 import { Empty, LiqDist, Pnl, Seg, SideBadge, Spinner, StatCard, Tabs } from '../components/ui';
 import {
   getClearinghouseState,
@@ -12,9 +13,10 @@ import {
   getUserFunding,
   Priority,
 } from '../lib/api';
-import { fmtDateTime, fmtPct, fmtPx, fmtSize, fmtUsd, isAddress, num, pnlClass, shortAddr } from '../lib/format';
+import { fmtAge, fmtDateTime, fmtPct, fmtPx, fmtShortDateTime, fmtSize, fmtUsd, isAddress, num, pnlClass, shortAddr } from '../lib/format';
 import { market } from '../lib/market';
 import { useObservable } from '../lib/observable';
+import { findOpenTime, openTimes } from '../lib/openTimes';
 import { parseClearinghouse, toLive } from '../lib/positions';
 import { scanner } from '../lib/scanner';
 import { computeFillStats } from '../lib/stats';
@@ -126,6 +128,10 @@ function Wallet({ address }: { address: string }) {
     [data.snap, mv], // mv: re-price on every market tick
   );
   const snap = data.snap;
+  // Share the open times this page can compute with the scanner tables.
+  useEffect(() => {
+    if (data.fills && data.snap) openTimes.ingest(address, data.fills, data.snap);
+  }, [address, data.fills, data.snap]);
   const totalPnl = positions.reduce((t, p) => t + p.livePnl, 0);
   const totalNtl = positions.reduce((t, p) => t + p.notional, 0);
   const longNtl = positions.filter((p) => p.side === 'long').reduce((t, p) => t + p.notional, 0);
@@ -154,8 +160,12 @@ function Wallet({ address }: { address: string }) {
           <div className="small">
             <a href="#/">← Scanner</a>
           </div>
-          <h1 className="row" style={{ gap: 8 }}>
-            {label || 'Wallet'} <span className="mono muted" style={{ fontSize: 14, wordBreak: 'break-all' }}>{address}</span>
+          <h1>
+            <span className="fn">WLT</span>
+            {label || 'Wallet'}
+            <span className="h1-value muted" style={{ fontSize: 12.5, wordBreak: 'break-all' }}>
+              {address}
+            </span>
             <CopyBtn text={address} />
           </h1>
           <div className="row small" style={{ marginTop: 4 }}>
@@ -183,12 +193,12 @@ function Wallet({ address }: { address: string }) {
                 onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
               />
               <button type="button" className="btn" onClick={() => watchlist.remove(address)}>
-                ★ Berhenti pantau
+                Berhenti pantau
               </button>
             </>
           ) : (
             <button type="button" className="btn primary" onClick={() => watchlist.add(address, seed?.displayName ?? '')}>
-              ☆ Pantau &amp; aktifkan alert
+              Pantau &amp; aktifkan alert
             </button>
           )}
         </div>
@@ -255,7 +265,7 @@ function Wallet({ address }: { address: string }) {
 
       <section className="panel">
         <Tabs value={tab} tabs={tabs} onChange={openTab} />
-        {tab === 'positions' && <PositionsTab positions={positions} loading={!snap} />}
+        {tab === 'positions' && <PositionsTab positions={positions} loading={!snap} fills={data.fills} fillsError={errors.fills} />}
         {tab === 'chart' && <ChartTab positions={positions} fills={data.fills} />}
         {tab === 'orders' && <OrdersTab orders={data.orders} error={errors.orders} />}
         {tab === 'fills' && <FillsTab fills={data.fills} error={errors.fills} />}
@@ -272,7 +282,17 @@ function Loading({ error }: { error?: string }) {
   return error ? <div className="notice error">{error}</div> : <Empty><Spinner /> Memuat…</Empty>;
 }
 
-function PositionsTab({ positions, loading }: { positions: ReturnType<typeof toLive>[]; loading: boolean }) {
+function PositionsTab({
+  positions,
+  loading,
+  fills,
+  fillsError,
+}: {
+  positions: ReturnType<typeof toLive>[];
+  loading: boolean;
+  fills: HLFill[] | null;
+  fillsError?: string;
+}) {
   if (loading) return <Loading />;
   if (!positions.length) return <Empty>Wallet ini tidak punya posisi perp terbuka.</Empty>;
   return (
@@ -290,6 +310,8 @@ function PositionsTab({ positions, loading }: { positions: ReturnType<typeof toL
             <th className="num">Jarak</th>
             <th className="num">Leverage</th>
             <th className="num">Margin</th>
+            <th title="Waktu posisi dibuka, dari fill pembuka (m = menit, j = jam, hr = hari)">Dibuka</th>
+            <th title="Fill terakhir di coin ini (tambah/kurangi posisi)">Fill terakhir</th>
             <th className="num">uPnL (ROE)</th>
             <th className="num" title="Funding diterima (+) atau dibayar (−) sejak posisi dibuka">
               Funding
@@ -321,6 +343,13 @@ function PositionsTab({ positions, loading }: { positions: ReturnType<typeof toL
                 {p.leverage}x <span className="dim small">{p.leverageType}</span>
               </td>
               <td className="num muted">{fmtUsd(p.marginUsed)}</td>
+              {fills ? (
+                <OpenCells info={findOpenTime(fills, p.coin, p.szi)} />
+              ) : (
+                <td colSpan={2} className="dim small">
+                  {fillsError ? 'riwayat fill gagal dimuat' : <Spinner />}
+                </td>
+              )}
               <td className="num">
                 <Pnl v={p.livePnl} pct={p.liveRoe} />
               </td>
@@ -330,6 +359,17 @@ function PositionsTab({ positions, loading }: { positions: ReturnType<typeof toL
         </tbody>
       </table>
     </div>
+  );
+}
+
+function OpenCells({ info }: { info: ReturnType<typeof findOpenTime> }) {
+  return (
+    <>
+      <td className="small">
+        <OpenedText info={info} />
+      </td>
+      <td className="small muted nowrap">{info.lastFillAt ? `${fmtShortDateTime(info.lastFillAt)} · ${fmtAge(info.lastFillAt)}` : '–'}</td>
+    </>
   );
 }
 
@@ -346,8 +386,8 @@ function ChartTab({ positions, fills }: { positions: ReturnType<typeof toLive>[]
   const pos = positions.find((p) => p.coin === active);
   const lines: ChartLine[] = pos
     ? [
-        { price: pos.entryPx, color: pos.side === 'long' ? '#2fd67b' : '#ff5470', title: `Entry ${pos.side.toUpperCase()}` },
-        ...(pos.liquidationPx ? [{ price: pos.liquidationPx, color: '#f5b13d', title: 'Likuidasi', dashed: true }] : []),
+        { price: pos.entryPx, color: pos.side === 'long' ? LEVEL_COLORS.long : LEVEL_COLORS.short, title: `Entry ${pos.side.toUpperCase()}` },
+        ...(pos.liquidationPx ? [{ price: pos.liquidationPx, color: LEVEL_COLORS.liq, title: 'Likuidasi', dashed: true }] : []),
       ]
     : [];
   const markers: ChartMarker[] = (fills ?? [])
@@ -409,7 +449,9 @@ function OrdersTab({ orders, error }: { orders: HLOpenOrder[] | null; error?: st
               <td className="small">
                 {o.reduceOnly && <span className="tag">reduce only</span>} {o.isPositionTpsl && <span className="tag">TP/SL posisi</span>}
               </td>
-              <td className="muted small nowrap">{fmtDateTime(o.timestamp)}</td>
+              <td className="small nowrap" title={fmtDateTime(o.timestamp)}>
+                {fmtShortDateTime(o.timestamp)} <span className="dim">{fmtAge(o.timestamp)}</span>
+              </td>
             </tr>
           ))}
         </tbody>

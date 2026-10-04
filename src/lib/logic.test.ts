@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { TradeAggregator } from './aggregator';
 import { diffSnapshots } from './alerts';
-import { fmtPct, fmtPx, fmtSize, fmtUsd, isAddress, shortAddr } from './format';
+import { fmtAge, fmtPct, fmtPx, fmtSize, fmtUsd, isAddress, shortAddr } from './format';
 import { parseLeaderboard, toCompact } from './leaderboard';
+import { findOpenTime } from './openTimes';
 import { aggregateByCoin, liqDistance, parseClearinghouse, toLive } from './positions';
 import { WeightLimiter } from './rateLimiter';
 import { computeFillStats } from './stats';
@@ -50,6 +51,9 @@ describe('format', () => {
     expect(fmtPx(null)).toBe('–');
     expect(fmtSize(7_218_750_000)).toBe('7.22B');
     expect(fmtSize(1_250_000)).toBe('1.25M');
+    expect(fmtAge(0, 45 * 60_000)).toBe('45m');
+    expect(fmtAge(0, (3 * 60 + 20) * 60_000)).toBe('3j 20m');
+    expect(fmtAge(0, (2 * 24 + 5) * 3_600_000)).toBe('2hr 5j');
   });
   it('formats percentages and addresses', () => {
     expect(fmtPct(0.0512, { sign: true })).toBe('+5.12%');
@@ -175,6 +179,36 @@ describe('diffSnapshots', () => {
     expect(diffSnapshots(near, near, opts, armed)).toEqual([]);
     diffSnapshots(near, far, opts, armed);
     expect(diffSnapshots(far, near, opts, armed).map((e) => e.kind)).toEqual(['liq']);
+  });
+});
+
+describe('findOpenTime', () => {
+  const fill = (time: number, side: 'A' | 'B', sz: number, startPosition: number, coin = 'BTC'): HLFill => ({
+    coin, px: '60000', sz: String(sz), side, time, startPosition: String(startPosition), dir: '', closedPnl: '0',
+    hash: '0x', oid: time, crossed: true, fee: '0', tid: time,
+  });
+
+  it('finds the fill that opened the current position, ignoring later adds', () => {
+    const fills = [
+      fill(500, 'B', 5, 10), // add 10 -> 15
+      fill(400, 'B', 10, 0), // open long 0 -> 10   <- current position opened here
+      fill(300, 'A', 4, 4), // close previous long 4 -> 0
+      fill(200, 'B', 4, 0), // older long
+      fill(100, 'A', 1, 0, 'ETH'),
+    ];
+    expect(findOpenTime(fills, 'BTC', 15)).toEqual({ openedAt: 400, before: null, lastFillAt: 500 });
+  });
+
+  it('treats a flip as an open of the new side', () => {
+    const fills = [fill(300, 'A', 2, -8), fill(200, 'A', 10, 2), fill(100, 'B', 2, 0)]; // long 2 -> short 8 -> 10
+    expect(findOpenTime(fills, 'BTC', -10).openedAt).toBe(200);
+    expect(findOpenTime(fills, 'BTC', 10).openedAt).toBe(100); // would be the long's open if it were still long
+  });
+
+  it('reports an older-than bound when the API window is exhausted', () => {
+    const fills = Array.from({ length: 2000 }, (_, i) => fill(10_000 - i, 'B', 1, 50 + i));
+    expect(findOpenTime(fills, 'BTC', 2050)).toEqual({ openedAt: null, before: 10_000 - 1999, lastFillAt: 10_000 });
+    expect(findOpenTime([fill(5, 'B', 1, 3)], 'BTC', 4).openedAt).toBeNull();
   });
 });
 

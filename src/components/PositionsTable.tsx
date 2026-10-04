@@ -1,15 +1,22 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { fmtAgo, fmtPx, fmtSize, fmtUsd } from '../lib/format';
 import type { LivePosition } from '../lib/types';
+import { openTimes } from '../lib/openTimes';
 import { Addr } from './Addr';
+import { Opened } from './Opened';
 import { Empty, LiqDist, Pnl, SideBadge, useSort } from './ui';
 
-type Col = 'wallet' | 'coin' | 'side' | 'size' | 'notional' | 'entry' | 'mark' | 'liq' | 'dist' | 'lev' | 'pnl' | 'roe' | 'equity' | 'updated';
+type Col = 'wallet' | 'coin' | 'side' | 'opened' | 'size' | 'notional' | 'entry' | 'mark' | 'liq' | 'dist' | 'lev' | 'pnl' | 'roe' | 'equity' | 'updated';
 
 const getters: Record<Col, (p: LivePosition) => number | string> = {
   wallet: (p) => p.address,
   coin: (p) => p.coin,
   side: (p) => p.side,
+  // Older first when ascending; unknown open times sort last.
+  opened: (p) => {
+    const info = openTimes.get(p.address, p.coin, p.side);
+    return info?.openedAt ?? info?.before ?? NaN;
+  },
   size: (p) => p.size,
   notional: (p) => p.notional,
   entry: (p) => p.entryPx,
@@ -24,6 +31,8 @@ const getters: Record<Col, (p: LivePosition) => number | string> = {
 };
 
 const PAGE = 200;
+/** Open times are looked up for this many rows from the top of the current sort. */
+const OPEN_TIME_ROWS = 40;
 
 export function PositionsTable({
   rows,
@@ -42,6 +51,11 @@ export function PositionsTable({
   const [limit, setLimit] = useState(PAGE);
   const now = Date.now();
 
+  // Look up open times for the top rows (cached; fetched slowly in the background).
+  useEffect(() => {
+    for (const address of new Set(sorted.slice(0, Math.min(limit, OPEN_TIME_ROWS)).map((p) => p.address))) openTimes.request(address);
+  }, [sorted, limit]);
+
   if (!rows.length) return <Empty>{emptyText ?? 'Belum ada posisi yang cocok dengan filter.'}</Empty>;
 
   return (
@@ -53,6 +67,7 @@ export function PositionsTable({
               {showWallet && th('wallet', 'Wallet')}
               {showCoin && th('coin', 'Coin')}
               {th('side', 'Sisi')}
+              {th('opened', 'Dibuka', { title: 'Waktu posisi dibuka, dari fill pembuka (m = menit, j = jam, hr = hari)' })}
               {th('size', 'Size', { num: true })}
               {th('notional', 'Nilai Posisi', { num: true })}
               {th('entry', 'Entry', { num: true })}
@@ -83,6 +98,9 @@ export function PositionsTable({
                 )}
                 <td>
                   <SideBadge side={p.side} />
+                </td>
+                <td className="small">
+                  <Opened address={p.address} coin={p.coin} side={p.side} />
                 </td>
                 <td className="num">{fmtSize(p.size)}</td>
                 <td className="num">

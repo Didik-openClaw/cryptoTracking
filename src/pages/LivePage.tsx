@@ -68,11 +68,12 @@ export function LivePage() {
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>Live Trade Besar</h1>
+          <h1>
+            <span className="fn">BLKT</span>Trade Besar Live
+          </h1>
           <p>
-            Setiap market order ≥ <b>{fmtUsd(s.liveMinUsd, { decimals: 0 })}</b> di {live.coins.length} perp paling likuid,
-            real-time dari websocket Hyperliquid. Fill-fill kecil dari satu order digabung jadi satu baris. Trader yang
-            ketahuan masuk besar otomatis dipindai posisinya oleh scanner.
+            Market order ≥ {fmtUsd(s.liveMinUsd, { decimals: 0 })} di {live.coins.length} perp teratas, real-time. Fill dari
+            satu order digabung. Trader besar otomatis dipindai posisinya.
           </p>
         </div>
         <div className="row">
@@ -138,7 +139,7 @@ export function LivePage() {
                 Bunyi
               </label>
               <button type="button" className="btn sm" onClick={() => setPaused(!paused)}>
-                {paused ? '▶ Lanjut' : '⏸ Jeda tampilan'}
+                {paused ? 'Lanjutkan' : 'Jeda tampilan'}
               </button>
               <button type="button" className="btn sm ghost" onClick={() => live.clear()}>
                 Bersihkan

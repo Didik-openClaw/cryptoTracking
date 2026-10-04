@@ -111,8 +111,11 @@ export const getOpenOrders = (user: string, signal?: AbortSignal) =>
   info<HLOpenOrder[]>({ type: 'frontendOpenOrders', user }, { weight: 20, signal });
 
 // userFills returns up to the 2000 most recent fills; weight grows per 20 items.
-export const getUserFills = (user: string, signal?: AbortSignal) =>
-  info<HLFill[]>({ type: 'userFills', user, aggregateByTime: true }, { weight: 120, signal });
+export const getUserFills = (user: string, signal?: AbortSignal, priority: number = Priority.User) =>
+  info<HLFill[]>({ type: 'userFills', user, aggregateByTime: true }, { weight: 120, signal, priority });
+
+/** userFills never returns more than this many fills. */
+export const USER_FILLS_CAP = 2000;
 
 export const getPortfolio = (user: string, signal?: AbortSignal) =>
   info<HLPortfolio>({ type: 'portfolio', user }, { weight: 20, signal });

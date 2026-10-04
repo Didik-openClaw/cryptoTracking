@@ -1,6 +1,7 @@
 import { apiStats, getClearinghouseState, Priority } from './api';
 import { loadSeeds, type SeedSource } from './leaderboard';
 import { Observable, sleep } from './observable';
+import { openTimes } from './openTimes';
 import { parseClearinghouse, toLive } from './positions';
 import { settings } from './settings';
 import { load, save } from './storage';
@@ -289,6 +290,7 @@ class Scanner extends Observable {
     const addr = snap.address;
     const prevScan = this.lastScanned.get(addr);
     const prev = this.wallets.get(addr);
+    openTimes.onSnapshot(prev, snap);
     this.lastScanned.set(addr, Date.now());
     if (maxPositionUsd(snap) >= STORE_FLOOR_USD) this.wallets.set(addr, snap);
     else this.wallets.delete(addr);

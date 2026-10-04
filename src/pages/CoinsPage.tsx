@@ -54,10 +54,12 @@ export function CoinsPage() {
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>Long vs Short per Coin</h1>
+          <h1>
+            <span className="fn">LSHT</span>Long vs Short per Coin
+          </h1>
           <p>
-            Total posisi whale (≥ {fmtUsd(s.minPositionUsd, { decimals: 0 })}) di setiap perp, dipisah LONG dan SHORT.
-            Klik coin untuk melihat daftar wallet di tiap sisi, harga entry, dan peta likuidasinya.
+            Posisi whale ≥ {fmtUsd(s.minPositionUsd, { decimals: 0 })} per perp, dipisah LONG dan SHORT. Pilih coin untuk
+            daftar wallet tiap sisi dan peta likuidasi.
           </p>
         </div>
         <div className="row">

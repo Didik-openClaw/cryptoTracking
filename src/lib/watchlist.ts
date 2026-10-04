@@ -78,7 +78,7 @@ class Watchlist extends Observable {
         severity: 'warn',
         address,
         label: seed?.displayName ?? '',
-        title: `🐋 Whale baru: ${p.side === 'long' ? 'LONG' : 'SHORT'} ${p.coin} ${fmtUsd(p.positionValue)}`,
+        title: `WHALE BARU: ${p.side === 'long' ? 'LONG' : 'SHORT'} ${p.coin} ${fmtUsd(p.positionValue)}`,
         body: `${shortAddr(address)} · entry ${fmtPx(p.entryPx)} · ${p.leverage}x`,
       });
     });

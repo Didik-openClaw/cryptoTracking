@@ -1,8 +1,21 @@
 # HL Whale Tracker: Pelacak Posisi Jumbo Hyperliquid
 
 Website untuk mencari dan memantau trader di jaringan **Hyperliquid** yang memegang posisi perp bernilai jutaan dollar:
-siapa yang **LONG**, siapa yang **SHORT**, berapa besar, di harga berapa masuk, di mana likuidasinya, dan trade besar apa yang
-sedang terjadi saat ini.
+siapa yang **LONG**, siapa yang **SHORT**, berapa besar, kapan posisinya dibuka, di harga berapa masuk, di mana likuidasinya,
+dan trade besar apa yang sedang terjadi saat ini.
+
+Tampilannya bergaya terminal Bloomberg: command line `GO`, menu fungsi bernomor (tekan `1`–`5`, atau `/` untuk mengetik),
+ticker harga berjalan, jam JKT/UTC/NY, dan status line di bawah.
+
+| Kode | Fungsi |
+| --- | --- |
+| `WHAL` (1) | Scanner Whale |
+| `LSHT` (2) | Long vs Short per coin |
+| `BLKT` (3) | Trade besar live |
+| `WTCH` (4) | Watchlist & alert |
+| `PREF` (5) | Pengaturan |
+
+Ketik alamat `0x…`, nama coin (`BTC`), atau kode fungsi di command line lalu tekan `GO`.
 
 Website ini statis (HTML + JavaScript) dan tidak butuh server. Semua data diambil langsung dari API publik Hyperliquid oleh
 browser pengunjung.
@@ -11,7 +24,7 @@ browser pengunjung.
 
 | Halaman | Isi |
 | --- | --- |
-| **Scanner Whale** (`#/`) | Semua posisi ≥ $5M (bisa diubah: $100K s/d $50M). Total LONG vs SHORT, rasio, uPnL, posisi yang dekat likuidasi, ringkasan Long vs Short per coin, whale dengan eksposur terbesar, dan tabel lengkap (size, nilai, entry, mark, harga likuidasi, jarak likuidasi, leverage, uPnL, ROE, equity) yang bisa difilter dan diurutkan. |
+| **Scanner Whale** (`#/`) | Semua posisi ≥ $5M (bisa diubah: $100K s/d $50M). Total LONG vs SHORT, rasio, uPnL, posisi yang dekat likuidasi, ringkasan Long vs Short per coin, whale dengan eksposur terbesar, dan tabel lengkap (waktu posisi dibuka, size, nilai, entry, mark, harga likuidasi, jarak likuidasi, leverage, uPnL, ROE, equity) yang bisa difilter dan diurutkan. |
 | **Long vs Short** (`#/coins`) | Per coin: total whale long/short, jumlah wallet, net, porsi dari open interest, rata-rata entry, uPnL tiap sisi, funding, dan OI. |
 | **Detail coin** (`#/coin/BTC`) | Daftar "Siapa yang LONG" dan "Siapa yang SHORT", chart candlestick dengan garis entry dan likuidasi whale, serta **peta likuidasi** (berapa nilai posisi yang terlikuidasi jika harga turun/naik ke level tertentu). |
 | **Live Trade Besar** (`#/live`) | Market order ≥ $1M secara real-time lewat websocket. Fill-fill kecil dari satu order digabung jadi satu baris. Ditampilkan juga posisi trader saat ini, maker terbesar, arus beli/jual 5 menit/15 menit/1 jam, dan trader paling agresif. Trader yang masuk besar otomatis ikut dipindai scanner. |
@@ -35,7 +48,12 @@ Hyperliquid tidak punya endpoint "daftar semua posisi besar", jadi website ini m
 4. **Rate limit**: Hyperliquid mengizinkan 1.200 bobot request per menit per IP. Website ini memakai 800 per menit secara default
    dan selalu menyisakan cadangan untuk aksi yang kamu klik, supaya halaman wallet tetap cepat walau scanner sedang berjalan.
 
-Hasil scan, watchlist, alert, dan pengaturan disimpan di `localStorage` browser.
+5. **Waktu buka posisi** tidak disediakan API Hyperliquid, jadi direkonstruksi dari riwayat fill wallet: fill terakhir yang
+   membawa posisi dari nol (atau dari sisi sebaliknya) ke posisi sekarang. Ini dicari otomatis untuk 40 baris teratas tabel,
+   memakai paling banyak ±30% kuota request, dan disimpan di browser. Kalau posisi lebih tua dari 2000 fill terakhir yang
+   disediakan API, tampil sebagai "> tanggal".
+
+Hasil scan, watchlist, alert, waktu buka posisi, dan pengaturan disimpan di `localStorage` browser.
 
 ### Keterbatasan
 

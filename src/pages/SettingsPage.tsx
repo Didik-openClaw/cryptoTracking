@@ -56,7 +56,9 @@ export function SettingsPage() {
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>Pengaturan</h1>
+          <h1>
+            <span className="fn">PREF</span>Pengaturan
+          </h1>
           <p>Semua pengaturan disimpan di browser ini.</p>
         </div>
         <ConfirmButton label="Reset ke default" question="Kembalikan semua pengaturan ke default?" onConfirm={() => settings.reset()} />

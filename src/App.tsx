@@ -1,4 +1,5 @@
 import { Header } from './components/Header';
+import { StatusBar } from './components/StatusBar';
 import { Toasts } from './components/Toasts';
 import { CoinPage } from './pages/CoinPage';
 import { CoinsPage } from './pages/CoinsPage';
@@ -44,18 +45,13 @@ export function App() {
       <main>
         {mode.demo && (
           <div className="demo-banner">
-            <b>Mode demo.</b> Semua angka, wallet, dan trade di halaman ini adalah <b>simulasi</b>, bukan data Hyperliquid asli.
-            Versi live mengambil data langsung dari API Hyperliquid setelah website di-deploy.
+            <b>MODE DEMO</b> · Semua angka, wallet, dan trade di layar ini <b>simulasi</b>, bukan data Hyperliquid asli. Versi
+            live mengambil data langsung dari API Hyperliquid setelah website di-deploy.
           </div>
         )}
         {content}
-        <div className="footer">
-          Data publik dari API Hyperliquid (api.hyperliquid.xyz) · Bukan saran finansial · Chart oleh{' '}
-          <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">
-            TradingView Lightweight Charts
-          </a>
-        </div>
       </main>
+      <StatusBar />
       <Toasts />
     </>
   );

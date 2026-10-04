@@ -54,11 +54,12 @@ export function WatchlistPage() {
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>Watchlist &amp; Alert</h1>
+          <h1>
+            <span className="fn">WTCH</span>Watchlist &amp; Alert
+          </h1>
           <p>
-            Pantau wallet whale favorit. Kamu akan dapat notifikasi saat mereka buka/tutup/tambah posisi, balik arah, atau
-            posisinya mendekati likuidasi. {MAX_REALTIME_USERS} wallet teratas dipantau <b>real-time</b> lewat websocket, sisanya
-            dicek setiap {s.watchPollSec} detik.
+            Alert saat wallet buka, tutup, tambah, atau balik posisi, dan saat posisi mendekati likuidasi. {MAX_REALTIME_USERS}{' '}
+            wallet teratas real-time via websocket, sisanya dicek tiap {s.watchPollSec} detik.
           </p>
         </div>
       </div>
@@ -86,7 +87,7 @@ export function WatchlistPage() {
             <input className="input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="mis. Paus BTC" />
           </label>
           <button type="submit" className="btn primary">
-            + Tambah
+            Tambah
           </button>
           <button type="button" className="btn ghost" onClick={() => setIo(!io)}>
             Import / Export
@@ -126,7 +127,7 @@ export function WatchlistPage() {
           <div className="panel-head">
             <h2>Wallet dipantau ({watchlist.entries.length})</h2>
             <button type="button" className="btn sm" onClick={() => watchlist.refreshNow()}>
-              ↻ Refresh semua
+              Refresh semua
             </button>
           </div>
           {watchlist.entries.length ? (

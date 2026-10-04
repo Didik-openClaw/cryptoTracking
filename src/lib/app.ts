@@ -1,6 +1,7 @@
 import { limiter } from './api';
 import { live } from './live';
 import { market } from './market';
+import { openTimes } from './openTimes';
 import { scanner } from './scanner';
 import { settings } from './settings';
 import { watchlist } from './watchlist';
@@ -24,6 +25,8 @@ export function startApp(): void {
       scanner.restartPass();
     }
   });
+
+  openTimes.setSource((address) => scanner.wallets.get(address));
 
   // Keep the latest results for the next visit.
   window.addEventListener('pagehide', () => scanner.persist());
