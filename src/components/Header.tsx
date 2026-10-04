@@ -5,19 +5,21 @@ import { market } from '../lib/market';
 import { useObservable } from '../lib/observable';
 import { scanner } from '../lib/scanner';
 import { watchlist } from '../lib/watchlist';
-import { THEME_LABEL, theme } from '../lib/theme';
+import { tr } from '../lib/i18n';
+import { themeLabel, theme } from '../lib/theme';
 import { AccessChip } from './AccessChip';
+import { LangButton } from './LangButton';
 import { socket } from '../lib/ws';
 import { go } from '../router';
 
 /** Numbered functions, Bloomberg style: press the digit or type the code. */
 export const FUNCTIONS = [
-  { path: '', code: 'WHAL', label: 'Scanner Whale' },
-  { path: 'coins', code: 'LSHT', label: 'Long vs Short' },
-  { path: 'top', code: 'TOPW', label: 'Top Whale' },
-  { path: 'live', code: 'BLKT', label: 'Trade Besar' },
-  { path: 'watchlist', code: 'WTCH', label: 'Watchlist' },
-  { path: 'settings', code: 'PREF', label: 'Pengaturan' },
+  { path: '', code: 'WHAL', label: () => tr('Scanner Whale', 'Whale Scanner') },
+  { path: 'coins', code: 'LSHT', label: () => 'Long vs Short' },
+  { path: 'top', code: 'TOPW', label: () => 'Top Whale' },
+  { path: 'live', code: 'BLKT', label: () => tr('Trade Besar', 'Block Trades') },
+  { path: 'watchlist', code: 'WTCH', label: () => 'Watchlist' },
+  { path: 'settings', code: 'PREF', label: () => tr('Pengaturan', 'Settings') },
 ];
 
 const CLOCKS = [
@@ -33,7 +35,7 @@ function Clocks() {
     return () => clearInterval(t);
   }, []);
   return (
-    <div className="clocks" aria-label="Jam pasar">
+    <div className="clocks" aria-label={tr('Jam pasar', 'Market clocks')}>
       {CLOCKS.map((c) => (
         <span key={c.label}>
           <b>{c.label}</b>
@@ -62,7 +64,7 @@ function Tape() {
       );
     });
   return (
-    <div className="tape" aria-label="Harga perp teratas">
+    <div className="tape" aria-label={tr('Harga perp teratas', 'Top perp prices')}>
       {/* The list is rendered twice so the scrolling loop is seamless. */}
       <div className="tape-track">
         {items('')}
@@ -112,7 +114,13 @@ export function Header({ route }: { route: string[] }) {
     else if (fn) go(`/${fn.path}`);
     else if (coin) go(`/coin/${encodeURIComponent(coin)}`);
     else {
-      setErr(`Tidak dikenal. Ketik alamat 0x… (40 karakter), nama coin (BTC), atau kode fungsi (${FUNCTIONS.map((f) => f.code).join(', ')}).`);
+      const codes = FUNCTIONS.map((f) => f.code).join(', ');
+      setErr(
+        tr(
+          `Tidak dikenal. Ketik alamat 0x… (40 karakter), nama coin (BTC), atau kode fungsi (${codes}).`,
+          `Not recognized. Type a 0x… address (40 characters), a coin (BTC) or a function code (${codes}).`,
+        ),
+      );
       return;
     }
     setQ('');
@@ -139,8 +147,11 @@ export function Header({ route }: { route: string[] }) {
               setErr('');
             }}
             onBlur={() => setErr('')}
-            placeholder="Alamat 0x…, coin (BTC) atau fungsi (WHAL) lalu GO   ·   tekan / untuk mengetik"
-            aria-label="Command line: alamat wallet, coin, atau kode fungsi"
+            placeholder={tr(
+              'Alamat 0x…, coin (BTC) atau fungsi (WHAL) lalu GO   ·   tekan / untuk mengetik',
+              '0x… address, coin (BTC) or function (WHAL) then GO   ·   press / to type',
+            )}
+            aria-label={tr('Command line: alamat wallet, coin, atau kode fungsi', 'Command line: wallet address, coin or function code')}
             spellCheck={false}
             autoCapitalize="characters"
           />
@@ -155,34 +166,35 @@ export function Header({ route }: { route: string[] }) {
           type="button"
           className="theme-btn"
           onClick={() => theme.cycle()}
-          title="Ganti tema: Gelap → Terang → Auto (ikuti perangkat)"
-          aria-label={`Tema: ${THEME_LABEL[theme.pref]}. Klik untuk ganti.`}
+          title={tr('Ganti tema: Gelap → Terang → Auto (ikuti perangkat)', 'Change theme: Dark → Light → Auto (follow device)')}
+          aria-label={tr(`Tema: ${themeLabel(theme.pref)}. Klik untuk ganti.`, `Theme: ${themeLabel(theme.pref)}. Click to change.`)}
         >
           <span className="theme-icon" aria-hidden="true" />
-          {THEME_LABEL[theme.pref]}
+          {themeLabel(theme.pref)}
         </button>
+        <LangButton />
         <div className="conn">
-          <span title="Websocket real-time Hyperliquid">
+          <span title={tr('Websocket real-time Hyperliquid', 'Hyperliquid real-time websocket')}>
             <i className={`dot ${wsCls}`} />
             LIVE
           </span>
-          <span title="Status scanner">
+          <span title={tr('Status scanner', 'Scanner status')}>
             <i className={`dot ${scanCls}`} />
             SCAN
           </span>
           {limiter.pausedFor > 0 && (
-            <span className="warn" title="Hyperliquid membalas 429, request dijeda sebentar">
+            <span className="warn" title={tr('Hyperliquid membalas 429, request dijeda sebentar', 'Hyperliquid answered 429; requests are paused briefly')}>
               RATE LIMIT
             </span>
           )}
         </div>
       </div>
-      <nav className="fnbar" aria-label="Fungsi">
+      <nav className="fnbar" aria-label={tr('Fungsi', 'Functions')}>
         {FUNCTIONS.map((f, i) => (
-          <a key={f.code} href={`#/${f.path}`} className={active(f.path) ? 'on' : ''} title={`Tekan ${i + 1}`}>
+          <a key={f.code} href={`#/${f.path}`} className={active(f.path) ? 'on' : ''} title={tr(`Tekan ${i + 1}`, `Press ${i + 1}`)}>
             <b>{i + 1})</b>
             <span className="code">{f.code}</span>
-            {f.label}
+            {f.label()}
             {f.path === 'watchlist' && watchlist.unread > 0 && <span className="badge-count">{watchlist.unread}</span>}
           </a>
         ))}

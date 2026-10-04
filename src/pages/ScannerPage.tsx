@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 import { Addr } from '../components/Addr';
 import { PositionsTable } from '../components/PositionsTable';
 import { Empty, LongShortBar, Progress, Seg, StatCard, UsdSelect } from '../components/ui';
-import { fmtAgo, fmtDuration, fmtUsd, pnlClass } from '../lib/format';
+import { fmtAgo, fmtCount, fmtDuration, fmtUsd, pnlClass } from '../lib/format';
 import { useWhalePositions } from '../hooks';
+import { plural, tr } from '../lib/i18n';
 import { mode } from '../lib/mode';
 import { useObservable } from '../lib/observable';
 import { aggregateByCoin } from '../lib/positions';
@@ -13,12 +14,12 @@ import { watchlist } from '../lib/watchlist';
 
 type SideFilter = 'all' | 'long' | 'short';
 
-const SOURCE_LABEL: Record<string, string> = {
-  cache: 'cache browser',
-  bundled: 'snapshot situs',
-  direct: 'langsung dari Hyperliquid',
-  stale: 'snapshot lama',
-};
+const sourceLabel = (): Record<string, string> => ({
+  cache: tr('cache browser', 'browser cache'),
+  bundled: tr('snapshot situs', 'site snapshot'),
+  direct: tr('langsung dari Hyperliquid', 'direct from Hyperliquid'),
+  stale: tr('snapshot lama', 'stale snapshot'),
+});
 
 export function ScannerPage() {
   useObservable(settings);
@@ -107,15 +108,24 @@ export function ScannerPage() {
       <div className="page-head">
         <div>
           <h1>
-            <span className="fn">WHAL</span>Scanner Whale
+            <span className="fn">WHAL</span>
+            {tr('Scanner Whale', 'Whale Scanner')}
           </h1>
           <p>
-            Posisi perp ≥ {fmtUsd(s.minPositionUsd, { decimals: 0 })}: siapa LONG, siapa SHORT, ukuran, waktu buka, entry, dan
-            likuidasi. Harga real-time.
+            {tr(
+              <>
+                Posisi perp ≥ {fmtUsd(s.minPositionUsd, { decimals: 0 })}: siapa LONG, siapa SHORT, ukuran, waktu buka, entry,
+                dan likuidasi. Harga real-time.
+              </>,
+              <>
+                Perp positions ≥ {fmtUsd(s.minPositionUsd, { decimals: 0 })}: who is LONG, who is SHORT, size, open time,
+                entry and liquidation. Real-time prices.
+              </>,
+            )}
           </p>
         </div>
         <div className="row">
-          <span className="muted small">Posisi minimal</span>
+          <span className="muted small">{tr('Posisi minimal', 'Min. position')}</span>
           <UsdSelect value={s.minPositionUsd} onChange={(v) => settings.update({ minPositionUsd: v })} />
         </div>
       </div>
@@ -124,34 +134,36 @@ export function ScannerPage() {
 
       <div className="cards">
         <StatCard
-          label="Posisi jumbo"
-          value={filtered.length.toLocaleString('id-ID')}
-          sub={`${totals.wallets} wallet · total ${fmtUsd(total)}`}
+          label={tr('Posisi jumbo', 'Large positions')}
+          value={fmtCount(filtered.length)}
+          sub={tr(`${totals.wallets} wallet · total ${fmtUsd(total)}`, `${plural(totals.wallets, 'wallet')} · total ${fmtUsd(total)}`)}
         />
         <StatCard
-          label="Total LONG whale"
+          label={tr('Total LONG whale', 'Total whale LONG')}
           tone="long"
           value={<span className="pos">{fmtUsd(totals.longUsd)}</span>}
           sub={
             <>
-              {totals.longN} posisi · uPnL <span className={pnlClass(totals.longPnl)}>{fmtUsd(totals.longPnl, { sign: true })}</span>
+              {totals.longN} {tr('posisi', 'positions')} · uPnL{' '}
+              <span className={pnlClass(totals.longPnl)}>{fmtUsd(totals.longPnl, { sign: true })}</span>
             </>
           }
           onClick={() => setSide('long')}
         />
         <StatCard
-          label="Total SHORT whale"
+          label={tr('Total SHORT whale', 'Total whale SHORT')}
           tone="short"
           value={<span className="neg">{fmtUsd(totals.shortUsd)}</span>}
           sub={
             <>
-              {totals.shortN} posisi · uPnL <span className={pnlClass(totals.shortPnl)}>{fmtUsd(totals.shortPnl, { sign: true })}</span>
+              {totals.shortN} {tr('posisi', 'positions')} · uPnL{' '}
+              <span className={pnlClass(totals.shortPnl)}>{fmtUsd(totals.shortPnl, { sign: true })}</span>
             </>
           }
           onClick={() => setSide('short')}
         />
         <StatCard
-          label="Rasio Long / Short"
+          label={tr('Rasio Long / Short', 'Long / Short ratio')}
           value={
             <>
               <span className="pos">{total ? ((totals.longUsd / total) * 100).toFixed(0) : 50}%</span>
@@ -162,10 +174,10 @@ export function ScannerPage() {
           sub={<LongShortBar long={totals.longUsd} short={totals.shortUsd} big />}
         />
         <StatCard
-          label="Dekat likuidasi (< 5%)"
+          label={tr('Dekat likuidasi (< 5%)', 'Near liquidation (< 5%)')}
           tone={totals.nearLiq ? 'danger' : undefined}
           value={<span className={totals.nearLiq ? 'danger' : ''}>{totals.nearLiq}</span>}
-          sub="Klik untuk lihat posisi yang paling terancam"
+          sub={tr('Klik untuk lihat posisi yang paling terancam', 'Click to see the most at-risk positions')}
           onClick={() => {
             setMaxDist(0.05);
             setSortKey('dist');
@@ -178,7 +190,7 @@ export function ScannerPage() {
           <div className="panel-head">
             <h2>Long vs Short per Coin</h2>
             <a className="small" href="#/coins">
-              Lihat semua coin →
+              {tr('Lihat semua coin →', 'View all coins →')}
             </a>
           </div>
           {byCoin.length ? (
@@ -188,7 +200,7 @@ export function ScannerPage() {
                   <tr>
                     <th>Coin</th>
                     <th className="num">Long</th>
-                    <th style={{ width: '32%' }}>Rasio</th>
+                    <th style={{ width: '32%' }}>{tr('Rasio', 'Ratio')}</th>
                     <th className="num">Short</th>
                     <th className="num">Net</th>
                   </tr>
@@ -227,14 +239,16 @@ export function ScannerPage() {
               </table>
             </div>
           ) : (
-            <Empty>Menunggu hasil scan…</Empty>
+            <Empty>{tr('Menunggu hasil scan…', 'Waiting for scan results…')}</Empty>
           )}
         </section>
 
         <section className="panel">
           <div className="panel-head">
-            <h2>Whale Terbesar (total eksposur)</h2>
-            <span className="hint">Net bias: hijau = net long, merah = net short</span>
+            <h2>{tr('Whale Terbesar (total eksposur)', 'Largest Whales (total exposure)')}</h2>
+            <span className="hint">
+              {tr('Net bias: hijau = net long, merah = net short', 'Net bias: green = net long, red = net short')}
+            </span>
           </div>
           {topWallets.length ? (
             <div className="table-wrap compact">
@@ -242,7 +256,7 @@ export function ScannerPage() {
                 <thead>
                   <tr>
                     <th>Wallet</th>
-                    <th className="num">Eksposur</th>
+                    <th className="num">{tr('Eksposur', 'Exposure')}</th>
                     <th style={{ width: '26%' }}>Long / Short</th>
                     <th className="num">uPnL</th>
                   </tr>
@@ -266,21 +280,26 @@ export function ScannerPage() {
               </table>
             </div>
           ) : (
-            <Empty>Menunggu hasil scan…</Empty>
+            <Empty>{tr('Menunggu hasil scan…', 'Waiting for scan results…')}</Empty>
           )}
         </section>
       </div>
 
       <section className="panel">
         <div className="panel-head">
-          <h2>Semua Posisi Jumbo</h2>
-          <span className="hint">Klik judul kolom untuk mengurutkan · ☆ untuk pantau &amp; dapat alert</span>
+          <h2>{tr('Semua Posisi Jumbo', 'All Large Positions')}</h2>
+          <span className="hint">
+            {tr(
+              <>Klik judul kolom untuk mengurutkan · ☆ untuk pantau &amp; dapat alert</>,
+              <>Click a column header to sort · ☆ to watch &amp; get alerts</>,
+            )}
+          </span>
         </div>
         <div className="filters" style={{ marginBottom: 12 }}>
           <label className="field">
             <span>Coin</span>
             <select className="input" value={coin} onChange={(e) => setCoin(e.target.value)}>
-              <option value="all">Semua coin</option>
+              <option value="all">{tr('Semua coin', 'All coins')}</option>
               {coins.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -289,47 +308,52 @@ export function ScannerPage() {
             </select>
           </label>
           <div className="field">
-            <span>Sisi</span>
+            <span>{tr('Sisi', 'Side')}</span>
             <Seg<SideFilter>
               value={side}
               onChange={setSide}
               options={[
-                { value: 'all', label: 'Semua' },
+                { value: 'all', label: tr('Semua', 'All') },
                 { value: 'long', label: 'Long', cls: 'long' },
                 { value: 'short', label: 'Short', cls: 'short' },
               ]}
             />
           </div>
           <label className="field">
-            <span>Leverage min</span>
+            <span>{tr('Leverage min', 'Min leverage')}</span>
             <select className="input" value={minLev} onChange={(e) => setMinLev(Number(e.target.value))}>
               {[0, 2, 5, 10, 20, 25, 40].map((v) => (
                 <option key={v} value={v}>
-                  {v ? `≥ ${v}x` : 'Semua'}
+                  {v ? `≥ ${v}x` : tr('Semua', 'All')}
                 </option>
               ))}
             </select>
           </label>
           <label className="field">
-            <span>Jarak likuidasi</span>
+            <span>{tr('Jarak likuidasi', 'Liq. distance')}</span>
             <select className="input" value={maxDist} onChange={(e) => setMaxDist(Number(e.target.value))}>
               {[0, 0.02, 0.05, 0.1, 0.2].map((v) => (
                 <option key={v} value={v}>
-                  {v ? `< ${v * 100}%` : 'Semua'}
+                  {v ? `< ${v * 100}%` : tr('Semua', 'All')}
                 </option>
               ))}
             </select>
           </label>
           <label className="field grow" style={{ minWidth: 200 }}>
-            <span>Cari wallet / label</span>
-            <input className="input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="0x… atau nama" />
+            <span>{tr('Cari wallet / label', 'Search wallet / label')}</span>
+            <input
+              className="input"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={tr('0x… atau nama', '0x… or name')}
+            />
           </label>
           <label className="check" style={{ paddingBottom: 8 }}>
             <input type="checkbox" checked={onlyWatch} onChange={(e) => setOnlyWatch(e.target.checked)} />
-            Hanya watchlist
+            {tr('Hanya watchlist', 'Watchlist only')}
           </label>
           <button type="button" className="btn ghost" onClick={resetFilters}>
-            Reset filter
+            {tr('Reset filter', 'Reset filters')}
           </button>
         </div>
         <PositionsTable
@@ -337,15 +361,22 @@ export function ScannerPage() {
           rows={filtered}
           initialSort={sortKey}
           emptyText={
-            all.length ? (
-              'Tidak ada posisi yang cocok dengan filter.'
-            ) : (
-              <>
-                <b>Scanner sedang berjalan.</b>
-                <br />
-                Posisi ≥ {fmtUsd(s.minPositionUsd)} akan muncul di sini begitu ditemukan. Akun terbesar dipindai lebih dulu.
-              </>
-            )
+            all.length
+              ? tr('Tidak ada posisi yang cocok dengan filter.', 'No positions match the filters.')
+              : tr(
+                  <>
+                    <b>Scanner sedang berjalan.</b>
+                    <br />
+                    Posisi ≥ {fmtUsd(s.minPositionUsd)} akan muncul di sini begitu ditemukan. Akun terbesar dipindai lebih
+                    dulu.
+                  </>,
+                  <>
+                    <b>Scanner is running.</b>
+                    <br />
+                    Positions ≥ {fmtUsd(s.minPositionUsd)} will show up here as they are found. Largest accounts are scanned
+                    first.
+                  </>,
+                )
           }
         />
       </section>
@@ -362,47 +393,71 @@ function ScanStatus({ progress, eta, rate }: { progress: number; eta: number; ra
         <div className="row small">
           <b>
             {scanner.status === 'seeding'
-              ? 'Memuat daftar akun…'
+              ? tr('Memuat daftar akun…', 'Loading account list…')
               : scanner.status === 'paused'
-                ? 'Scanner dijeda'
-                : `Pass #${pass.n}: ${pass.done.toLocaleString('id-ID')} / ${pass.total.toLocaleString('id-ID')} akun`}
+                ? tr('Scanner dijeda', 'Scanner paused')
+                : tr(
+                    `Pass #${pass.n}: ${fmtCount(pass.done)} / ${fmtCount(pass.total)} akun`,
+                    `Pass #${pass.n}: ${fmtCount(pass.done)} / ${fmtCount(pass.total)} accounts`,
+                  )}
           </b>
           {scanner.status === 'scanning' && (
             <span className="muted">
-              {rate} akun/menit{eta > 0 && ` · sisa ±${fmtDuration(eta)}`}
-              {pass.lastDurationMs > 0 && ` · pass terakhir ${fmtDuration(pass.lastDurationMs)}`}
+              {rate} {tr('akun/menit', 'accounts/min')}
+              {eta > 0 && tr(` · sisa ±${fmtDuration(eta)}`, ` · ETA ±${fmtDuration(eta)}`)}
+              {pass.lastDurationMs > 0 &&
+                tr(` · pass terakhir ${fmtDuration(pass.lastDurationMs)}`, ` · last pass ${fmtDuration(pass.lastDurationMs)}`)}
             </span>
           )}
           {seed && (
-            <span className="tag" style={{ whiteSpace: 'normal' }} title="Sumber daftar akun yang dipindai">
-              {seed.count.toLocaleString('id-ID')} akun leaderboard · {mode.demo ? 'simulasi' : SOURCE_LABEL[seed.source]}
+            <span
+              className="tag"
+              style={{ whiteSpace: 'normal' }}
+              title={tr('Sumber daftar akun yang dipindai', 'Source of the scanned account list')}
+            >
+              {fmtCount(seed.count)} {tr('akun leaderboard', 'leaderboard accounts')} ·{' '}
+              {mode.demo ? tr('simulasi', 'simulated') : sourceLabel()[seed.source]}
               {seed.generatedAt ? ` · ${fmtAgo(seed.generatedAt)}` : ''}
             </span>
           )}
-          <span className="tag">{scanner.discovered.size} dari live feed</span>
-          {scanner.errors > 0 && <span className="tag warn">{scanner.errors} error</span>}
+          <span className="tag">
+            {scanner.discovered.size} {tr('dari live feed', 'from live feed')}
+          </span>
+          {scanner.errors > 0 && (
+            <span className="tag warn">
+              {scanner.errors} {tr('error', 'errors')}
+            </span>
+          )}
         </div>
         <div className="row">
           {scanner.isRunning ? (
             <button type="button" className="btn sm" onClick={() => scanner.pause()}>
-              Jeda
+              {tr('Jeda', 'Pause')}
             </button>
           ) : (
             <button type="button" className="btn sm primary" onClick={() => void scanner.start()}>
-              Lanjutkan
+              {tr('Lanjutkan', 'Resume')}
             </button>
           )}
-          <button type="button" className="btn sm" onClick={() => scanner.restartPass()} title="Mulai ulang dari akun terbesar">
-            Pass baru
+          <button
+            type="button"
+            className="btn sm"
+            onClick={() => scanner.restartPass()}
+            title={tr('Mulai ulang dari akun terbesar', 'Restart from the largest accounts')}
+          >
+            {tr('Pass baru', 'New pass')}
           </button>
           <button
             type="button"
             className="btn sm"
             disabled={scanner.status === 'seeding'}
             onClick={() => void scanner.loadSeed(true)}
-            title="Unduh ulang leaderboard terbaru langsung dari Hyperliquid"
+            title={tr(
+              'Unduh ulang leaderboard terbaru langsung dari Hyperliquid',
+              'Re-download the latest leaderboard straight from Hyperliquid',
+            )}
           >
-            Leaderboard terbaru
+            {tr('Leaderboard terbaru', 'Latest leaderboard')}
           </button>
         </div>
       </div>
@@ -410,7 +465,10 @@ function ScanStatus({ progress, eta, rate }: { progress: number; eta: number; ra
       {scanner.statusMsg && <div className="small muted" style={{ marginTop: 8 }}>{scanner.statusMsg}</div>}
       {scanner.restoredAt > 0 && pass.n <= 1 && progress < 1 && (
         <div className="small dim" style={{ marginTop: 6 }}>
-          Menampilkan hasil scan sebelumnya ({fmtAgo(scanner.restoredAt)}) sambil diperbarui.
+          {tr(
+            <>Menampilkan hasil scan sebelumnya ({fmtAgo(scanner.restoredAt)}) sambil diperbarui.</>,
+            <>Showing previous scan results ({fmtAgo(scanner.restoredAt)}) while updating.</>,
+          )}
         </div>
       )}
     </section>

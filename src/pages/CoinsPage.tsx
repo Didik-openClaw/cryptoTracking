@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Empty, LongShortBar, UsdSelect, useSort } from '../components/ui';
 import { fmtPct, fmtPx, fmtUsd, pnlClass } from '../lib/format';
+import { tr } from '../lib/i18n';
 import { market } from '../lib/market';
 import { useObservable } from '../lib/observable';
 import { aggregateByCoin, type CoinAggregate } from '../lib/positions';
@@ -58,12 +59,20 @@ export function CoinsPage() {
             <span className="fn">LSHT</span>Long vs Short per Coin
           </h1>
           <p>
-            Posisi whale ≥ {fmtUsd(s.minPositionUsd, { decimals: 0 })} per perp, dipisah LONG dan SHORT. Pilih coin untuk
-            daftar wallet tiap sisi dan peta likuidasi.
+            {tr(
+              <>
+                Posisi whale ≥ {fmtUsd(s.minPositionUsd, { decimals: 0 })} per perp, dipisah LONG dan SHORT. Pilih coin untuk
+                daftar wallet tiap sisi dan peta likuidasi.
+              </>,
+              <>
+                Whale positions ≥ {fmtUsd(s.minPositionUsd, { decimals: 0 })} per perp, split into LONG and SHORT. Pick a coin
+                for the wallets on each side and the liquidation map.
+              </>,
+            )}
           </p>
         </div>
         <div className="row">
-          <span className="muted small">Posisi minimal</span>
+          <span className="muted small">{tr('Posisi minimal', 'Min. position')}</span>
           <UsdSelect value={s.minPositionUsd} onChange={(v) => settings.update({ minPositionUsd: v })} />
         </div>
       </div>
@@ -74,15 +83,24 @@ export function CoinsPage() {
               <thead>
                 <tr>
                   {th('coin', 'Coin')}
-                  {th('mark', 'Harga', { num: true })}
-                  {th('change', '24j', { num: true })}
-                  {th('funding', 'Funding/jam', { num: true, title: 'Funding rate per jam (APR dalam kurung). Positif = long bayar short' })}
+                  {th('mark', tr('Harga', 'Price'), { num: true })}
+                  {th('change', tr('24j', '24h'), { num: true })}
+                  {th('funding', tr('Funding/jam', 'Funding/h'), {
+                    num: true,
+                    title: tr(
+                      'Funding rate per jam (APR dalam kurung). Positif = long bayar short',
+                      'Hourly funding rate (APR in brackets). Positive = longs pay shorts',
+                    ),
+                  })}
                   {th('oi', 'Open Interest', { num: true })}
                   {th('long', 'Whale LONG', { num: true })}
-                  {th('ratio', 'Rasio L/S')}
+                  {th('ratio', tr('Rasio L/S', 'L/S ratio'))}
                   {th('short', 'Whale SHORT', { num: true })}
                   {th('net', 'Net', { num: true })}
-                  {th('oiShare', '% dari OI', { num: true, title: 'Porsi posisi whale terhadap open interest' })}
+                  {th('oiShare', tr('% dari OI', '% of OI'), {
+                    num: true,
+                    title: tr('Porsi posisi whale terhadap open interest', 'Whale positions as a share of open interest'),
+                  })}
                   <th className="num">Avg entry L / S</th>
                   <th className="num">uPnL L / S</th>
                 </tr>
@@ -136,7 +154,12 @@ export function CoinsPage() {
             </table>
           </div>
         ) : (
-          <Empty>Belum ada posisi whale. Scanner masih berjalan, coba lagi sebentar.</Empty>
+          <Empty>
+            {tr(
+              'Belum ada posisi whale. Scanner masih berjalan, coba lagi sebentar.',
+              'No whale positions yet. The scanner is still running; check back shortly.',
+            )}
+          </Empty>
         )}
       </section>
     </div>

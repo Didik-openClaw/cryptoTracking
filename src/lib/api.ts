@@ -1,3 +1,4 @@
+import { tr } from './i18n';
 import { WeightLimiter } from './rateLimiter';
 import { sleep } from './observable';
 import type {
@@ -73,20 +74,29 @@ export async function info<T>(body: Record<string, unknown>, opts: InfoOpts = {}
         await sleep(1000 * 2 ** attempt);
         continue;
       }
-      throw fail(new ApiError(`Gagal terhubung ke API Hyperliquid (${(e as Error).message})`));
+      const why = (e as Error).message;
+      throw fail(new ApiError(tr(`Gagal terhubung ke API Hyperliquid (${why})`, `Can't reach the Hyperliquid API (${why})`)));
     }
     if (res.status === 429) {
       apiStats.rateLimited++;
       limiter.pause(5_000 * (attempt + 1));
       if (attempt < 5) continue;
-      throw fail(new ApiError('Kena rate limit Hyperliquid (429). Turunkan kecepatan scan di Pengaturan.', 429));
+      throw fail(
+        new ApiError(
+          tr(
+            'Kena rate limit Hyperliquid (429). Turunkan kecepatan scan di Pengaturan.',
+            'Hyperliquid rate limit hit (429). Lower the scan rate in Settings.',
+          ),
+          429,
+        ),
+      );
     }
     if (!res.ok) {
       if (res.status >= 500 && attempt < 3) {
         await sleep(1000 * 2 ** attempt);
         continue;
       }
-      throw fail(new ApiError(`API Hyperliquid error ${res.status}`, res.status));
+      throw fail(new ApiError(tr(`API Hyperliquid error ${res.status}`, `Hyperliquid API error ${res.status}`), res.status));
     }
     const json = (await res.json()) as T;
     if (opts.perItems && Array.isArray(json)) limiter.charge(Math.floor(json.length / opts.perItems));

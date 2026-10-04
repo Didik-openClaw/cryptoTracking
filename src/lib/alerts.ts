@@ -1,4 +1,5 @@
 import { fmtPct, fmtPx, fmtSize, fmtUsd } from './format';
+import { tr } from './i18n';
 import { liqDistance } from './positions';
 import type { Position, WalletSnapshot } from './types';
 
@@ -43,24 +44,31 @@ export function diffSnapshots(
   for (const [coin, p] of after) {
     const b = before.get(coin);
     if (!b) {
-      events.push({ kind: 'open', coin, severity: 'info', title: `Buka ${sideLabel(p)} ${coin}`, body: describe(p) });
+      events.push({
+        kind: 'open',
+        coin,
+        severity: 'info',
+        title: `${tr('Buka', 'Open')} ${sideLabel(p)} ${coin}`,
+        body: describe(p),
+      });
     } else if (b.side !== p.side) {
       events.push({
         kind: 'flip',
         coin,
         severity: 'warn',
-        title: `Balik arah ${sideLabel(b)} → ${sideLabel(p)} ${coin}`,
+        title: `${tr('Balik arah', 'Flip')} ${sideLabel(b)} → ${sideLabel(p)} ${coin}`,
         body: describe(p),
       });
     } else if (b.size > 0) {
       const rel = (p.size - b.size) / b.size;
       if (Math.abs(rel) * 100 >= opts.sizeChangePct) {
         const up = rel > 0;
+        const verb = up ? tr('Tambah', 'Add') : tr('Kurangi', 'Reduce');
         events.push({
           kind: up ? 'increase' : 'decrease',
           coin,
           severity: 'info',
-          title: `${up ? 'Tambah' : 'Kurangi'} ${sideLabel(p)} ${coin} ${fmtPct(rel, { sign: true, decimals: 1 })}`,
+          title: `${verb} ${sideLabel(p)} ${coin} ${fmtPct(rel, { sign: true, decimals: 1 })}`,
           body: `${fmtSize(b.size)} → ${describe(p)}`,
         });
       }
@@ -70,12 +78,13 @@ export function diffSnapshots(
     const armed = liqArmed.get(coin) ?? true;
     if (dist !== null && dist * 100 < opts.liqPct) {
       if (armed) {
+        const pos = `${sideLabel(p)} ${coin}`;
         events.push({
           kind: 'liq',
           coin,
           severity: 'danger',
-          title: `${sideLabel(p)} ${coin} dekat likuidasi (${fmtPct(dist)})`,
-          body: `Mark ${fmtPx(markOf(p))} · likuidasi ${fmtPx(p.liquidationPx)} · ${describe(p)}`,
+          title: tr(`${pos} dekat likuidasi (${fmtPct(dist)})`, `${pos} near liquidation (${fmtPct(dist)})`),
+          body: `Mark ${fmtPx(markOf(p))} · ${tr('likuidasi', 'Liq.')} ${fmtPx(p.liquidationPx)} · ${describe(p)}`,
         });
         liqArmed.set(coin, false);
       }
@@ -87,12 +96,13 @@ export function diffSnapshots(
   for (const [coin, b] of before) {
     if (after.has(coin)) continue;
     liqArmed.delete(coin);
+    const upnl = fmtUsd(b.unrealizedPnl, { sign: true });
     events.push({
       kind: 'close',
       coin,
       severity: 'info',
-      title: `Tutup ${sideLabel(b)} ${coin}`,
-      body: `${fmtSize(b.size)} ${coin} (${fmtUsd(b.positionValue)}) · uPnL terakhir ${fmtUsd(b.unrealizedPnl, { sign: true })}`,
+      title: `${tr('Tutup', 'Close')} ${sideLabel(b)} ${coin}`,
+      body: `${fmtSize(b.size)} ${coin} (${fmtUsd(b.positionValue)}) · ${tr(`uPnL terakhir ${upnl}`, `last uPnL ${upnl}`)}`,
     });
   }
   return events;

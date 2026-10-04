@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { startApp } from './lib/app';
+import { LangRoot } from './lib/i18n';
 import { theme } from './lib/theme';
 import './styles.css';
 
@@ -10,6 +11,8 @@ startApp();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <LangRoot>
+      <App />
+    </LangRoot>
   </StrictMode>,
 );

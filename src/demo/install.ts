@@ -272,7 +272,7 @@ function leaderboard() {
 }
 
 function candles(req: { coin: string; interval: string; startTime: number; endTime: number }) {
-  const step = ({ '15m': 9e5, '1h': 36e5, '4h': 144e5, '1d': 864e5 } as Record<string, number>)[req.interval] ?? 36e5;
+  const step = ({ '5m': 3e5, '15m': 9e5, '1h': 36e5, '4h': 144e5, '1d': 864e5, '1w': 6048e5 } as Record<string, number>)[req.interval] ?? 36e5;
   const coin = coinMap.get(req.coin) ?? COINS[0];
   const r = mulberry32(req.coin.length * 977 + step / 1000);
   const last = Math.floor(req.endTime / step) * step;
@@ -280,7 +280,7 @@ function candles(req: { coin: string; interval: string; startTime: number; endTi
   let close = coin.px;
   const vol = Math.sqrt(step / 36e5) * 0.006;
   // Walk backwards from the live price so the last candle matches the mark.
-  for (let t = last; t >= req.startTime && out.length < 400; t -= step) {
+  for (let t = last; t >= req.startTime && out.length < 600; t -= step) {
     const open = close * (1 + (r() - 0.5) * 2 * vol + Math.sin(t / step / 9) * vol * 0.4);
     const hi = Math.max(open, close) * (1 + r() * vol * 0.6);
     const lo = Math.min(open, close) * (1 - r() * vol * 0.6);
@@ -361,6 +361,9 @@ function info(body: Record<string, unknown>): unknown {
       return (a?.positions ?? []).flatMap((p, i) => {
         const px = coinMap.get(p.coin)!.px;
         const long = p.szi > 0;
+        // As in the real API: prices have at most 5 significant figures, and triggerCondition
+        // is English text that already includes the price ("Price below 100.0"), whatever the UI language.
+        const trigger = String(Number((px * (long ? 0.91 : 1.09)).toPrecision(5)));
         return [
           {
             coin: p.coin, side: long ? 'A' : 'B', limitPx: String(px * (long ? 1.08 : 0.92)), sz: String(Math.abs(p.szi) / 2),
@@ -368,8 +371,8 @@ function info(body: Record<string, unknown>): unknown {
           },
           {
             coin: p.coin, side: long ? 'A' : 'B', limitPx: String(px * (long ? 0.9 : 1.1)), sz: '0', oid: i * 2 + 2,
-            timestamp: NOW - 10_800_000, orderType: 'Stop Market', triggerPx: String(px * (long ? 0.91 : 1.09)),
-            triggerCondition: long ? 'Harga di bawah' : 'Harga di atas', isTrigger: true, isPositionTpsl: true, reduceOnly: true,
+            timestamp: NOW - 10_800_000, orderType: 'Stop Market', triggerPx: trigger,
+            triggerCondition: `${long ? 'Price below' : 'Price above'} ${trigger}`, isTrigger: true, isPositionTpsl: true, reduceOnly: true,
           },
         ];
       });

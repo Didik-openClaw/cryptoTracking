@@ -1,4 +1,5 @@
 import { fmtCountdown, type Me } from './accessClient';
+import { tr } from './i18n';
 import { mode } from './mode';
 import { notifier } from './notify';
 import { Observable } from './observable';
@@ -65,8 +66,16 @@ class AccessState extends Observable {
     const left = me.exp - (Date.now() + this.offset);
     if (left < WARN_MS && !this.warned) {
       this.warned = true;
+      const time = fmtCountdown(left);
       notifier.push(
-        { title: 'Akses hampir habis', body: `Sisa ${fmtCountdown(left)}. Klik chip AKSES di header untuk perpanjang.`, severity: 'warn' },
+        {
+          title: tr('Akses hampir habis', 'Access expiring soon'),
+          body: tr(
+            `Sisa ${time}. Klik chip AKSES di header untuk perpanjang.`,
+            `${time} left. Click the ACCESS chip in the header to renew.`,
+          ),
+          severity: 'warn',
+        },
         { browser: false },
       );
     }

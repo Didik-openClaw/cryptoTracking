@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { shortAddr } from '../lib/format';
+import { tr } from '../lib/i18n';
 import { useObservable } from '../lib/observable';
 import { watchlist } from '../lib/watchlist';
 
@@ -10,7 +11,7 @@ export function WatchStar({ address }: { address: string }) {
     <button
       type="button"
       className={`icon-btn${on ? ' on' : ''}`}
-      title={on ? 'Hapus dari watchlist' : 'Tambah ke watchlist (alert)'}
+      title={on ? tr('Hapus dari watchlist', 'Remove from watchlist') : tr('Tambah ke watchlist (alert)', 'Add to watchlist (alerts)')}
       onClick={(e) => {
         e.stopPropagation();
         e.preventDefault();
@@ -29,7 +30,7 @@ export function CopyBtn({ text }: { text: string }) {
     <button
       type="button"
       className="icon-btn"
-      title="Salin alamat"
+      title={tr('Salin alamat', 'Copy address')}
       onClick={(e) => {
         e.stopPropagation();
         e.preventDefault();

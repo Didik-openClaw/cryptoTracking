@@ -31,6 +31,7 @@ import {
   shortAddr,
   wrClass,
 } from '../lib/format';
+import { plural, tr } from '../lib/i18n';
 import { market } from '../lib/market';
 import { useObservable } from '../lib/observable';
 import { fillsService } from '../lib/fills';
@@ -119,7 +120,7 @@ type Win = 'day' | 'week' | 'month' | 'allTime';
 
 export function WalletPage({ address: raw }: { address: string }) {
   const address = raw.toLowerCase();
-  if (!isAddress(address)) return <Empty>Alamat tidak valid: {raw}</Empty>;
+  if (!isAddress(address)) return <Empty>{tr('Alamat tidak valid', 'Invalid address')}: {raw}</Empty>;
   return <Wallet key={address} address={address} />;
 }
 
@@ -165,14 +166,14 @@ function Wallet({ address }: { address: string }) {
   const winPnl = portfolioWin?.pnlHistory.length ? num(portfolioWin.pnlHistory[portfolioWin.pnlHistory.length - 1][1]) : null;
 
   const tabs: { id: Tab; label: string; count?: number }[] = [
-    { id: 'positions', label: 'Posisi', count: positions.length },
-    { id: 'chart', label: 'Chart Trade' },
-    { id: 'orders', label: 'Open Order', count: data.orders?.length },
-    { id: 'fills', label: 'Riwayat Trade', count: data.fills?.length },
+    { id: 'positions', label: tr('Posisi', 'Positions'), count: positions.length },
+    { id: 'chart', label: tr('Chart Trade', 'Trade Chart') },
+    { id: 'orders', label: tr('Open Order', 'Open Orders'), count: data.orders?.length },
+    { id: 'fills', label: tr('Riwayat Trade', 'Trade History'), count: data.fills?.length },
     { id: 'funding', label: 'Funding' },
-    { id: 'ledger', label: 'Deposit & Transfer' },
+    { id: 'ledger', label: tr('Deposit & Transfer', 'Deposits & Transfers') },
     { id: 'spot', label: 'Spot' },
-    { id: 'stats', label: 'Statistik' },
+    { id: 'stats', label: tr('Statistik', 'Stats') },
   ];
 
   return (
@@ -192,12 +193,13 @@ function Wallet({ address }: { address: string }) {
           </h1>
           <div className="row small" style={{ marginTop: 4 }}>
             {seed && (
-              <span className="tag accent" title="Data leaderboard Hyperliquid">
-                Leaderboard: PnL 30h {fmtUsd(seed.pnl.month, { sign: true })} · all-time {fmtUsd(seed.pnl.allTime, { sign: true })}
+              <span className="tag accent" title={tr('Data leaderboard Hyperliquid', 'Hyperliquid leaderboard data')}>
+                {tr('Leaderboard: PnL 30h', 'Leaderboard: 30d PnL')} {fmtUsd(seed.pnl.month, { sign: true })} · all-time{' '}
+                {fmtUsd(seed.pnl.allTime, { sign: true })}
               </span>
             )}
             <a href={`https://app.hyperliquid.xyz/explorer/address/${address}`} target="_blank" rel="noreferrer">
-              Explorer Hyperliquid ↗
+              {tr('Explorer Hyperliquid ↗', 'Hyperliquid Explorer ↗')}
             </a>
             <a href={`https://hypurrscan.io/address/${address}`} target="_blank" rel="noreferrer">
               Hypurrscan ↗
@@ -210,33 +212,37 @@ function Wallet({ address }: { address: string }) {
               <input
                 className="input"
                 defaultValue={watched.label}
-                placeholder="Beri nama wallet ini"
+                placeholder={tr('Beri nama wallet ini', 'Name this wallet')}
                 onBlur={(e) => watchlist.rename(address, e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
               />
               <button type="button" className="btn" onClick={() => watchlist.remove(address)}>
-                Berhenti pantau
+                {tr('Berhenti pantau', 'Unwatch')}
               </button>
             </>
           ) : (
             <button type="button" className="btn primary" onClick={() => watchlist.add(address, seed?.displayName ?? '')}>
-              Pantau &amp; aktifkan alert
+              {tr('Pantau & aktifkan alert', 'Watch & enable alerts')}
             </button>
           )}
         </div>
       </div>
 
-      {errors.snap && <div className="notice error">Gagal memuat posisi: {errors.snap}</div>}
+      {errors.snap && <div className="notice error">{tr('Gagal memuat posisi', 'Failed to load positions')}: {errors.snap}</div>}
 
       <div className="cards">
-        <StatCard label="Nilai akun (perp)" value={snap ? fmtUsd(snap.accountValue) : <Spinner />} sub={snap ? `Withdrawable ${fmtUsd(snap.withdrawable)}` : ''} />
         <StatCard
-          label="Total posisi"
+          label={tr('Nilai akun (perp)', 'Account value (perp)')}
+          value={snap ? fmtUsd(snap.accountValue) : <Spinner />}
+          sub={snap ? `Withdrawable ${fmtUsd(snap.withdrawable)}` : ''}
+        />
+        <StatCard
+          label={tr('Total posisi', 'Total notional')}
           value={snap ? fmtUsd(totalNtl) : '–'}
           sub={
             snap && snap.accountValue > 0 ? (
               <>
-                Leverage efektif {(totalNtl / snap.accountValue).toFixed(2)}x ·{' '}
+                {tr('Leverage efektif', 'Effective leverage')} {(totalNtl / snap.accountValue).toFixed(2)}x ·{' '}
                 <span className="pos">L {fmtUsd(longNtl)}</span> / <span className="neg">S {fmtUsd(totalNtl - longNtl)}</span>
               </>
             ) : (
@@ -244,9 +250,16 @@ function Wallet({ address }: { address: string }) {
             )
           }
         />
-        <StatCard label="uPnL terbuka" value={<Pnl v={totalPnl} />} sub={snap ? `Margin terpakai ${fmtUsd(snap.marginUsed)}` : ''} />
         <StatCard
-          label={`PnL ${{ day: '24 jam', week: '7 hari', month: '30 hari', allTime: 'sepanjang waktu' }[win]}`}
+          label={tr('uPnL terbuka', 'Open uPnL')}
+          value={<Pnl v={totalPnl} />}
+          sub={snap ? `${tr('Margin terpakai', 'Margin used')} ${fmtUsd(snap.marginUsed)}` : ''}
+        />
+        <StatCard
+          label={tr(
+            `PnL ${{ day: '24 jam', week: '7 hari', month: '30 hari', allTime: 'sepanjang waktu' }[win]}`,
+            `${{ day: '24h', week: '7d', month: '30d', allTime: 'All-time' }[win]} PnL`,
+          )}
           value={winPnl === null ? data.portfolio ? '–' : <Spinner /> : <Pnl v={winPnl} />}
           sub={portfolioWin ? `Volume ${fmtUsd(num(portfolioWin.vlm))}` : ''}
         />
@@ -254,21 +267,29 @@ function Wallet({ address }: { address: string }) {
 
       <section className="panel">
         <div className="panel-head">
-          <h2>{mode === 'pnl' ? 'Riwayat PnL' : 'Riwayat nilai akun'}</h2>
+          <h2>{mode === 'pnl' ? tr('Riwayat PnL', 'PnL history') : tr('Riwayat nilai akun', 'Account value history')}</h2>
           <div className="row">
-            <Seg value={mode} onChange={setMode} options={[{ value: 'pnl', label: 'PnL' }, { value: 'equity', label: 'Nilai akun' }]} />
+            <Seg
+              value={mode}
+              onChange={setMode}
+              options={[
+                { value: 'pnl', label: 'PnL' },
+                { value: 'equity', label: tr('Nilai akun', 'Account value') },
+              ]}
+            />
             <Seg<Win>
               value={win}
               onChange={setWin}
               options={[
-                { value: 'day', label: '24j' },
-                { value: 'week', label: '7h' },
-                { value: 'month', label: '30h' },
-                { value: 'allTime', label: 'Semua' },
+                { value: 'day', label: tr('24j', '24h') },
+                { value: 'week', label: tr('7h', '7d') },
+                { value: 'month', label: tr('30h', '30d') },
+                { value: 'allTime', label: tr('Semua', 'All') },
               ]}
             />
             <label className="check small">
-              <input type="checkbox" checked={perpOnly} onChange={(e) => setPerpOnly(e.target.checked)} /> Perp saja
+              <input type="checkbox" checked={perpOnly} onChange={(e) => setPerpOnly(e.target.checked)} />{' '}
+              {tr('Perp saja', 'Perp only')}
             </label>
           </div>
         </div>
@@ -301,7 +322,7 @@ function Wallet({ address }: { address: string }) {
 }
 
 function Loading({ error }: { error?: string }) {
-  return error ? <div className="notice error">{error}</div> : <Empty><Spinner /> Memuat…</Empty>;
+  return error ? <div className="notice error">{error}</div> : <Empty><Spinner /> {tr('Memuat…', 'Loading…')}</Empty>;
 }
 
 function PositionsTab({
@@ -316,26 +337,41 @@ function PositionsTab({
   fillsError?: string;
 }) {
   if (loading) return <Loading />;
-  if (!positions.length) return <Empty>Wallet ini tidak punya posisi perp terbuka.</Empty>;
+  if (!positions.length) return <Empty>{tr('Wallet ini tidak punya posisi perp terbuka.', 'No open perp positions.')}</Empty>;
   return (
     <div className="table-wrap">
       <table>
         <thead>
           <tr>
             <th>Coin</th>
-            <th>Sisi</th>
+            <th>{tr('Sisi', 'Side')}</th>
             <th className="num">Size</th>
-            <th className="num">Nilai</th>
+            <th className="num">{tr('Nilai', 'Value')}</th>
             <th className="num">Entry</th>
             <th className="num">Mark</th>
-            <th className="num">Likuidasi</th>
-            <th className="num">Jarak</th>
+            <th className="num">{tr('Likuidasi', 'Liq. price')}</th>
+            <th className="num">{tr('Jarak', 'Liq. dist.')}</th>
             <th className="num">Leverage</th>
             <th className="num">Margin</th>
-            <th title="Waktu posisi dibuka, dari fill pembuka (m = menit, j = jam, hr = hari)">Dibuka</th>
-            <th title="Fill terakhir di coin ini (tambah/kurangi posisi)">Fill terakhir</th>
+            <th
+              title={tr(
+                'Waktu posisi dibuka, dari fill pembuka (m = menit, j = jam, hr = hari)',
+                'When the position was opened, from its opening fill (m = minutes, h = hours, d = days)',
+              )}
+            >
+              {tr('Dibuka', 'Opened')}
+            </th>
+            <th title={tr('Fill terakhir di coin ini (tambah/kurangi posisi)', 'Last fill in this coin (add/reduce)')}>
+              {tr('Fill terakhir', 'Last fill')}
+            </th>
             <th className="num">uPnL (ROE)</th>
-            <th className="num" title="Funding diterima (+) atau dibayar (−) sejak posisi dibuka">
+            <th
+              className="num"
+              title={tr(
+                'Funding diterima (+) atau dibayar (−) sejak posisi dibuka',
+                'Funding received (+) or paid (−) since the position opened',
+              )}
+            >
               Funding
             </th>
           </tr>
@@ -369,7 +405,7 @@ function PositionsTab({
                 <OpenCells info={findOpenTime(fills, p.coin, p.szi)} />
               ) : (
                 <td colSpan={2} className="dim small">
-                  {fillsError ? 'riwayat fill gagal dimuat' : <Spinner />}
+                  {fillsError ? tr('riwayat fill gagal dimuat', 'fill history failed to load') : <Spinner />}
                 </td>
               )}
               <td className="num">
@@ -405,13 +441,21 @@ function ChartTab({ positions, fills }: { positions: ReturnType<typeof toLive>[]
   }, [positions, fills]);
   const [coin, setCoin] = useState<string>('');
   const active = coin && coins.includes(coin) ? coin : coins[0];
-  if (!active) return fills ? <Empty>Belum ada posisi atau trade perp untuk ditampilkan.</Empty> : <Loading />;
+  if (!active) {
+    return fills ? (
+      <Empty>{tr('Belum ada posisi atau trade perp untuk ditampilkan.', 'No perp positions or trades to show.')}</Empty>
+    ) : (
+      <Loading />
+    );
+  }
 
   const pos = positions.find((p) => p.coin === active);
   const lines: ChartLine[] = pos
     ? [
         { price: pos.entryPx, color: pos.side === 'long' ? LEVEL.long : LEVEL.short, title: `Entry ${pos.side.toUpperCase()}` },
-        ...(pos.liquidationPx ? [{ price: pos.liquidationPx, color: LEVEL.liq, title: 'Likuidasi', dashed: true }] : []),
+        ...(pos.liquidationPx
+          ? [{ price: pos.liquidationPx, color: LEVEL.liq, title: tr('Likuidasi', 'Liquidation'), dashed: true }]
+          : []),
       ]
     : [];
   const markers: ChartMarker[] = (fills ?? [])
@@ -429,7 +473,12 @@ function ChartTab({ positions, fills }: { positions: ReturnType<typeof toLive>[]
             </option>
           ))}
         </select>
-        <span className="dim small">▲ beli · ▼ jual (dari {fills?.length ?? 0} fill terakhir)</span>
+        <span className="dim small">
+          {tr(
+            `▲ beli · ▼ jual (dari ${fills?.length ?? 0} fill terakhir)`,
+            `▲ buy · ▼ sell (last ${fills?.length ?? 0} fills)`,
+          )}
+        </span>
       </div>
       <div className="grid-chart">
         <PriceChart key={active} coin={active} lines={lines} markers={markers} />
@@ -439,9 +488,18 @@ function ChartTab({ positions, fills }: { positions: ReturnType<typeof toLive>[]
   );
 }
 
+/** "Harga di bawah 61,200.5": the API's condition text ("Price below 61200.5") in the interface language. */
+function triggerText(condition: string | undefined, px: string | undefined): string {
+  const c = condition ?? '';
+  const price = fmtPx(num(px));
+  if (/above/i.test(c)) return `${tr('Harga di atas', 'Price above')} ${price}`;
+  if (/below/i.test(c)) return `${tr('Harga di bawah', 'Price below')} ${price}`;
+  return c && c !== 'N/A' ? c : price;
+}
+
 function OrdersTab({ orders, error }: { orders: HLOpenOrder[] | null; error?: string }) {
   if (!orders) return <Loading error={error} />;
-  if (!orders.length) return <Empty>Tidak ada open order.</Empty>;
+  if (!orders.length) return <Empty>{tr('Tidak ada open order.', 'No open orders.')}</Empty>;
   const sorted = [...orders].sort((a, b) => num(b.sz) * num(b.limitPx) - num(a.sz) * num(a.limitPx));
   return (
     <div className="table-wrap table-scroll">
@@ -449,14 +507,14 @@ function OrdersTab({ orders, error }: { orders: HLOpenOrder[] | null; error?: st
         <thead>
           <tr>
             <th>Coin</th>
-            <th>Tipe</th>
-            <th>Sisi</th>
-            <th className="num">Harga</th>
+            <th>{tr('Tipe', 'Type')}</th>
+            <th>{tr('Sisi', 'Side')}</th>
+            <th className="num">{tr('Harga', 'Price')}</th>
             <th className="num">Trigger</th>
             <th className="num">Size</th>
-            <th className="num">Nilai</th>
+            <th className="num">{tr('Nilai', 'Value')}</th>
             <th>Info</th>
-            <th>Dibuat</th>
+            <th>{tr('Dibuat', 'Placed')}</th>
           </tr>
         </thead>
         <tbody>
@@ -468,13 +526,16 @@ function OrdersTab({ orders, error }: { orders: HLOpenOrder[] | null; error?: st
                 <SideBadge side={o.side === 'B' ? 'buy' : 'sell'} />
               </td>
               <td className="num">{fmtPx(num(o.limitPx))}</td>
-              <td className="num muted">{o.isTrigger ? `${o.triggerCondition ?? ''} ${fmtPx(num(o.triggerPx))}` : '–'}</td>
-              <td className="num">{num(o.sz) ? fmtSize(num(o.sz)) : <span className="dim">seluruh posisi</span>}</td>
+              <td className="num muted">{o.isTrigger ? triggerText(o.triggerCondition, o.triggerPx) : '–'}</td>
+              <td className="num">
+                {num(o.sz) ? fmtSize(num(o.sz)) : <span className="dim">{tr('seluruh posisi', 'entire position')}</span>}
+              </td>
               <td className="num">
                 <b>{num(o.sz) ? fmtUsd(num(o.sz) * num(o.limitPx)) : '–'}</b>
               </td>
               <td className="small">
-                {o.reduceOnly && <span className="tag">reduce only</span>} {o.isPositionTpsl && <span className="tag">TP/SL posisi</span>}
+                {o.reduceOnly && <span className="tag">reduce only</span>}{' '}
+                {o.isPositionTpsl && <span className="tag">{tr('TP/SL posisi', 'position TP/SL')}</span>}
               </td>
               <td className="small nowrap" title={fmtDateTime(o.timestamp)}>
                 {fmtShortDateTime(o.timestamp)} <span className="dim">{fmtAge(o.timestamp)}</span>
@@ -495,13 +556,13 @@ function FillsTab({ fills, error }: { fills: HLFill[] | null; error?: string }) 
   const [limit, setLimit] = useState(FILL_PAGE);
   const coins = useMemo(() => [...new Set((fills ?? []).map((f) => f.coin))].sort(), [fills]);
   if (!fills) return <Loading error={error} />;
-  if (!fills.length) return <Empty>Belum ada riwayat trade.</Empty>;
+  if (!fills.length) return <Empty>{tr('Belum ada riwayat trade.', 'No trade history yet.')}</Empty>;
   const rows = fills.filter((f) => (coin === 'all' || f.coin === coin) && num(f.sz) * num(f.px) >= minUsd);
   return (
     <div className="stack" style={{ gap: 10 }}>
       <div className="row">
         <select className="input" value={coin} onChange={(e) => setCoin(e.target.value)}>
-          <option value="all">Semua coin</option>
+          <option value="all">{tr('Semua coin', 'All coins')}</option>
           {coins.map((c) => (
             <option key={c} value={c}>
               {c}
@@ -511,23 +572,28 @@ function FillsTab({ fills, error }: { fills: HLFill[] | null; error?: string }) 
         <select className="input" value={minUsd} onChange={(e) => setMinUsd(Number(e.target.value))}>
           {[0, 10_000, 100_000, 1_000_000].map((v) => (
             <option key={v} value={v}>
-              {v ? `≥ ${fmtUsd(v, { decimals: 0 })}` : 'Semua ukuran'}
+              {v ? `≥ ${fmtUsd(v, { decimals: 0 })}` : tr('Semua ukuran', 'All sizes')}
             </option>
           ))}
         </select>
-        <span className="dim small">{fills.length} fill terakhir (maks. 2000 dari API, fill per waktu digabung)</span>
+        <span className="dim small">
+          {tr(
+            `${fills.length} fill terakhir (maks. 2000 dari API, fill per waktu digabung)`,
+            `Last ${fills.length} fills (API max 2000, same-time fills merged)`,
+          )}
+        </span>
       </div>
       <div className="table-wrap table-scroll">
         <table>
           <thead>
             <tr>
-              <th>Waktu</th>
+              <th>{tr('Waktu', 'Time')}</th>
               <th>Coin</th>
-              <th>Aksi</th>
-              <th className="num">Harga</th>
+              <th>{tr('Aksi', 'Action')}</th>
+              <th className="num">{tr('Harga', 'Price')}</th>
               <th className="num">Size</th>
-              <th className="num">Nilai</th>
-              <th className="num">PnL tertutup</th>
+              <th className="num">{tr('Nilai', 'Value')}</th>
+              <th className="num">{tr('PnL tertutup', 'Closed PnL')}</th>
               <th className="num">Fee</th>
             </tr>
           </thead>
@@ -540,7 +606,7 @@ function FillsTab({ fills, error }: { fills: HLFill[] | null; error?: string }) 
                   <td className="muted small nowrap">{fmtDateTime(f.time)}</td>
                   <td className="coin">{f.coin}</td>
                   <td className={`nowrap ${f.side === 'B' ? 'pos' : 'neg'}`}>
-                    {translateDir(f.dir)} {liq && <span className="tag danger">likuidasi</span>}
+                    {translateDir(f.dir)} {liq && <span className="tag danger">{tr('likuidasi', 'liquidation')}</span>}
                   </td>
                   <td className="num">{fmtPx(num(f.px))}</td>
                   <td className="num muted">{fmtSize(num(f.sz))}</td>
@@ -558,7 +624,7 @@ function FillsTab({ fills, error }: { fills: HLFill[] | null; error?: string }) 
       {rows.length > limit && (
         <div className="row" style={{ justifyContent: 'center' }}>
           <button type="button" className="btn" onClick={() => setLimit(limit + FILL_PAGE)}>
-            Tampilkan lebih banyak ({rows.length - limit} tersisa)
+            {tr(`Tampilkan lebih banyak (${rows.length - limit} tersisa)`, `Show more (${rows.length - limit} left)`)}
           </button>
         </div>
       )}
@@ -573,7 +639,16 @@ function FundingTab({ funding, error }: { funding: HLFundingEntry[] | null; erro
     return [...m].sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
   }, [funding]);
   if (!funding) return <Loading error={error} />;
-  if (!funding.length) return <Empty>Tidak ada pembayaran funding dalam {FUNDING_DAYS} hari terakhir.</Empty>;
+  if (!funding.length) {
+    return (
+      <Empty>
+        {tr(
+          `Tidak ada pembayaran funding dalam ${FUNDING_DAYS} hari terakhir.`,
+          `No funding payments in the last ${FUNDING_DAYS} days.`,
+        )}
+      </Empty>
+    );
+  }
   const total = byCoin.reduce((t, [, v]) => t + v, 0);
   const rows = [...funding].sort((a, b) => b.time - a.time).slice(0, 500);
   return (
@@ -582,11 +657,11 @@ function FundingTab({ funding, error }: { funding: HLFundingEntry[] | null; erro
         <table>
           <thead>
             <tr>
-              <th>Waktu</th>
+              <th>{tr('Waktu', 'Time')}</th>
               <th>Coin</th>
-              <th className="num">Size posisi</th>
+              <th className="num">{tr('Size posisi', 'Position size')}</th>
               <th className="num">Rate</th>
-              <th className="num">Jumlah</th>
+              <th className="num">{tr('Jumlah', 'Amount')}</th>
             </tr>
           </thead>
           <tbody>
@@ -603,9 +678,9 @@ function FundingTab({ funding, error }: { funding: HLFundingEntry[] | null; erro
         </table>
       </div>
       <div className="card">
-        <div className="label">Total funding {FUNDING_DAYS} hari</div>
+        <div className="label">{tr(`Total funding ${FUNDING_DAYS} hari`, `Total funding ${FUNDING_DAYS}d`)}</div>
         <div className={`value ${pnlClass(total)}`}>{fmtUsd(total, { sign: true })}</div>
-        <div className="sub">+ = diterima, − = dibayar</div>
+        <div className="sub">{tr('+ = diterima, − = dibayar', '+ = received, − = paid')}</div>
         <dl className="kv" style={{ marginTop: 12 }}>
           {byCoin.slice(0, 15).map(([c, v]) => (
             <FragmentKV key={c} k={c} v={<span className={pnlClass(v)}>{fmtUsd(v, { sign: true })}</span>} />
@@ -625,23 +700,23 @@ function FragmentKV({ k, v }: { k: React.ReactNode; v: React.ReactNode }) {
   );
 }
 
-const LEDGER_LABEL: Record<string, string> = {
+const ledgerLabel = (): Record<string, string> => ({
   deposit: 'Deposit',
   withdraw: 'Withdraw',
-  internalTransfer: 'Transfer internal',
-  subAccountTransfer: 'Transfer sub-akun',
+  internalTransfer: tr('Transfer internal', 'Internal transfer'),
+  subAccountTransfer: tr('Transfer sub-akun', 'Sub-account transfer'),
   accountClassTransfer: 'Perp ↔ Spot',
-  spotTransfer: 'Transfer spot',
-  send: 'Kirim',
-  vaultDeposit: 'Deposit ke vault',
-  vaultWithdraw: 'Tarik dari vault',
-  vaultCreate: 'Buat vault',
-  vaultDistribution: 'Distribusi vault',
-  liquidation: 'Likuidasi',
-  rewardsClaim: 'Klaim reward',
+  spotTransfer: tr('Transfer spot', 'Spot transfer'),
+  send: tr('Kirim', 'Send'),
+  vaultDeposit: tr('Deposit ke vault', 'Vault deposit'),
+  vaultWithdraw: tr('Tarik dari vault', 'Vault withdrawal'),
+  vaultCreate: tr('Buat vault', 'Vault created'),
+  vaultDistribution: tr('Distribusi vault', 'Vault distribution'),
+  liquidation: tr('Likuidasi', 'Liquidation'),
+  rewardsClaim: tr('Klaim reward', 'Reward claim'),
   cStakingTransfer: 'Staking',
   spotGenesis: 'Spot genesis',
-};
+});
 
 function ledgerAmount(e: HLLedgerEntry, address: string): { usd: number; dir: 'in' | 'out' | '' ; detail: string } {
   const d = e.delta;
@@ -662,7 +737,8 @@ function ledgerAmount(e: HLLedgerEntry, address: string): { usd: number; dir: 'i
       if (dest || user) {
         const incoming = dest === address;
         const other = incoming ? user : dest;
-        return { usd, dir: incoming ? 'in' : 'out', detail: `${incoming ? 'dari' : 'ke'} ${shortAddr(other)}${d.token ? ` · ${d.token}` : ''}` };
+        const dirWord = incoming ? tr('dari', 'from') : tr('ke', 'to');
+        return { usd, dir: incoming ? 'in' : 'out', detail: `${dirWord} ${shortAddr(other)}${d.token ? ` · ${d.token}` : ''}` };
       }
       return { usd, dir: '', detail: '' };
   }
@@ -670,8 +746,18 @@ function ledgerAmount(e: HLLedgerEntry, address: string): { usd: number; dir: 'i
 
 function LedgerTab({ ledger, error, address }: { ledger: HLLedgerEntry[] | null; error?: string; address: string }) {
   if (!ledger) return <Loading error={error} />;
-  if (!ledger.length) return <Empty>Tidak ada deposit/withdraw/transfer dalam {LEDGER_DAYS} hari terakhir.</Empty>;
+  if (!ledger.length) {
+    return (
+      <Empty>
+        {tr(
+          `Tidak ada deposit/withdraw/transfer dalam ${LEDGER_DAYS} hari terakhir.`,
+          `No deposits/withdrawals/transfers in the last ${LEDGER_DAYS} days.`,
+        )}
+      </Empty>
+    );
+  }
   const rows = [...ledger].sort((a, b) => b.time - a.time);
+  const labels = ledgerLabel();
   let dep = 0,
     wd = 0;
   for (const e of rows) {
@@ -683,15 +769,15 @@ function LedgerTab({ ledger, error, address }: { ledger: HLLedgerEntry[] | null;
       <div className="row small">
         <span className="tag accent">Deposit {fmtUsd(dep)}</span>
         <span className="tag">Withdraw {fmtUsd(wd)}</span>
-        <span className="dim">{LEDGER_DAYS} hari terakhir</span>
+        <span className="dim">{tr(`${LEDGER_DAYS} hari terakhir`, `last ${LEDGER_DAYS} days`)}</span>
       </div>
       <div className="table-wrap table-scroll">
         <table>
           <thead>
             <tr>
-              <th>Waktu</th>
-              <th>Jenis</th>
-              <th className="num">Jumlah (USD)</th>
+              <th>{tr('Waktu', 'Time')}</th>
+              <th>{tr('Jenis', 'Type')}</th>
+              <th className="num">{tr('Jumlah (USD)', 'Amount (USD)')}</th>
               <th>Detail</th>
               <th>Tx</th>
             </tr>
@@ -702,7 +788,7 @@ function LedgerTab({ ledger, error, address }: { ledger: HLLedgerEntry[] | null;
               return (
                 <tr key={`${e.hash}-${i}`}>
                   <td className="muted small nowrap">{fmtDateTime(e.time)}</td>
-                  <td>{LEDGER_LABEL[e.delta.type] ?? e.delta.type}</td>
+                  <td>{labels[e.delta.type] ?? e.delta.type}</td>
                   <td className={`num ${a.dir === 'in' ? 'pos' : a.dir === 'out' ? 'neg' : ''}`}>
                     {a.dir === 'in' ? '+' : a.dir === 'out' ? '−' : ''}
                     {fmtUsd(a.usd)}
@@ -730,7 +816,7 @@ function LedgerTab({ ledger, error, address }: { ledger: HLLedgerEntry[] | null;
 function SpotTab({ spot, error }: { spot: HLSpotBalance[] | null; error?: string }) {
   if (!spot) return <Loading error={error} />;
   const rows = spot.filter((b) => num(b.total) !== 0).sort((a, b) => num(b.entryNtl) - num(a.entryNtl));
-  if (!rows.length) return <Empty>Tidak ada saldo spot.</Empty>;
+  if (!rows.length) return <Empty>{tr('Tidak ada saldo spot.', 'No spot balances.')}</Empty>;
   return (
     <div className="table-wrap">
       <table>
@@ -738,8 +824,8 @@ function SpotTab({ spot, error }: { spot: HLSpotBalance[] | null; error?: string
           <tr>
             <th>Token</th>
             <th className="num">Total</th>
-            <th className="num">Ditahan (order)</th>
-            <th className="num">Nilai saat masuk</th>
+            <th className="num">{tr('Ditahan (order)', 'On hold (orders)')}</th>
+            <th className="num">{tr('Nilai saat masuk', 'Entry value')}</th>
           </tr>
         </thead>
         <tbody>
@@ -773,28 +859,43 @@ function StatsTab({ fills, error }: { fills: HLFill[] | null; error?: string }) 
   }, [fills]);
   if (!data) return <Loading error={error} />;
   const { basic: b, t } = data;
-  if (!b.fills) return <Empty>Belum ada riwayat trade untuk dihitung.</Empty>;
+  if (!b.fills) return <Empty>{tr('Belum ada riwayat trade untuk dihitung.', 'No trade history to analyze yet.')}</Empty>;
   return (
     <div className="stack">
       <div className="notice info small">
-        Dari {b.fills} fill terakhir ({fmtDateTime(b.firstTime)} – {fmtDateTime(b.lastTime)}), maksimal 2000 dari API. Satu
-        trade = posisi dibuka sampai ditutup atau dibalik. Angka trade sebelum fee.
+        {tr(
+          <>
+            Dari {b.fills} fill terakhir ({fmtDateTime(b.firstTime)} – {fmtDateTime(b.lastTime)}), maksimal 2000 dari API. Satu
+            trade = posisi dibuka sampai ditutup atau dibalik. Angka trade sebelum fee.
+          </>,
+          <>
+            Last {b.fills} fills ({fmtDateTime(b.firstTime)} – {fmtDateTime(b.lastTime)}), API max 2000. One trade = a position
+            from open to close or flip. Trade figures are before fees.
+          </>,
+        )}
       </div>
       <div className="cards">
         <StatCard
           label="Win rate"
           value={<span className={wrClass(t.winRate)}>{t.winRate === null ? '–' : fmtPct(t.winRate, { decimals: 1 })}</span>}
-          sub={`${t.wins} menang · ${t.losses} kalah · ${t.trades} trade`}
+          sub={tr(
+            `${t.wins} menang · ${t.losses} kalah · ${t.trades} trade`,
+            `${plural(t.wins, 'win')} · ${plural(t.losses, 'loss', 'losses')} · ${plural(t.trades, 'trade')}`,
+          )}
         />
         <StatCard
           label="Profit factor"
           value={<span className={pfClass(t.profitFactor)}>{fmtPF(t.profitFactor)}</span>}
-          sub={<>Profit {fmtUsd(t.grossProfit)} ÷ rugi {fmtUsd(t.grossLoss)}</>}
+          sub={<>Profit {fmtUsd(t.grossProfit)} ÷ {tr('rugi', 'loss')} {fmtUsd(t.grossLoss)}</>}
         />
         <StatCard
           label="Expectancy / trade"
           value={t.expectancy === null ? '–' : <Pnl v={t.expectancy} />}
-          sub={t.tradesPerDay !== null ? `${t.tradesPerDay.toFixed(1)} trade per hari` : ''}
+          sub={
+            t.tradesPerDay !== null
+              ? tr(`${t.tradesPerDay.toFixed(1)} trade per hari`, `${t.tradesPerDay.toFixed(1)} trades per day`)
+              : ''
+          }
         />
         <StatCard
           label="Avg win / avg loss"
@@ -816,11 +917,30 @@ function StatsTab({ fills, error }: { fills: HLFill[] | null; error?: string }) 
               <Pnl v={t.worstTrade} />
             </>
           }
-          sub={`Streak terpanjang: ${t.maxWinStreak} menang · ${t.maxLossStreak} kalah`}
+          sub={tr(
+            `Streak terpanjang: ${t.maxWinStreak} menang · ${t.maxLossStreak} kalah`,
+            `Longest streak: ${t.maxWinStreak} wins · ${t.maxLossStreak} losses`,
+          )}
         />
-        <StatCard label="Lama pegang posisi" value={fmtSpan(t.avgHoldMs)} sub="rata-rata per trade" />
-        <StatCard label="PnL terealisasi" value={<Pnl v={b.realizedPnl} />} sub={<>Setelah fee: <Pnl v={b.netPnl} /></>} />
-        <StatCard label="Volume · fee" value={fmtUsd(b.volume)} sub={`Fee ${fmtUsd(b.fees)}`} />
+        <StatCard
+          label={tr('Lama pegang posisi', 'Hold time')}
+          value={fmtSpan(t.avgHoldMs)}
+          sub={tr('rata-rata per trade', 'average per trade')}
+        />
+        <StatCard
+          label={tr('PnL terealisasi', 'Realized PnL')}
+          value={<Pnl v={b.realizedPnl} />}
+          sub={
+            <>
+              {tr('Setelah fee', 'After fees')}: <Pnl v={b.netPnl} />
+            </>
+          }
+        />
+        <StatCard
+          label={tr('Volume · fee', 'Volume · fees')}
+          value={fmtUsd(b.volume)}
+          sub={`${tr('Fee', 'Fees')} ${fmtUsd(b.fees)}`}
+        />
         <StatCard
           label="Bias"
           value={
@@ -832,9 +952,14 @@ function StatsTab({ fills, error }: { fills: HLFill[] | null; error?: string }) 
               </span>
             )
           }
-          sub={`Coin utama: ${t.topCoins.join(', ') || '–'}`}
+          sub={`${tr('Coin utama', 'Top coins')}: ${t.topCoins.join(', ') || '–'}`}
         />
-        <StatCard label="Kena likuidasi" value={b.liquidations} tone={b.liquidations ? 'danger' : undefined} sub="fill likuidasi" />
+        <StatCard
+          label={tr('Kena likuidasi', 'Liquidated')}
+          value={b.liquidations}
+          tone={b.liquidations ? 'danger' : undefined}
+          sub={tr('fill likuidasi', 'liquidation fills')}
+        />
       </div>
       <div className="grid-2">
         <div className="table-wrap compact">
@@ -843,9 +968,9 @@ function StatsTab({ fills, error }: { fills: HLFill[] | null; error?: string }) 
               <tr>
                 <th>Coin</th>
                 <th className="num">Volume</th>
-                <th className="num">Trade</th>
+                <th className="num">{tr('Trade', 'Trades')}</th>
                 <th className="num">Win rate</th>
-                <th className="num">PnL trade</th>
+                <th className="num">{tr('PnL trade', 'Trade PnL')}</th>
               </tr>
             </thead>
             <tbody>
@@ -870,31 +995,34 @@ function StatsTab({ fills, error }: { fills: HLFill[] | null; error?: string }) 
           <table>
             <thead>
               <tr>
-                <th>Trade terakhir</th>
-                <th>Sisi</th>
-                <th>Dibuka</th>
-                <th className="num">Durasi</th>
+                <th>{tr('Trade terakhir', 'Recent trades')}</th>
+                <th>{tr('Sisi', 'Side')}</th>
+                <th>{tr('Dibuka', 'Opened')}</th>
+                <th className="num">{tr('Durasi', 'Duration')}</th>
                 <th className="num">PnL</th>
               </tr>
             </thead>
             <tbody>
-              {data.trips.slice(0, 50).map((tr) => (
-                <tr key={`${tr.coin}-${tr.openAt}-${tr.closeAt}`}>
-                  <td className="coin">{tr.coin}</td>
+              {data.trips.slice(0, 50).map((rt) => (
+                <tr key={`${rt.coin}-${rt.openAt}-${rt.closeAt}`}>
+                  <td className="coin">{rt.coin}</td>
                   <td>
-                    <SideBadge side={tr.side} />
+                    <SideBadge side={rt.side} />
                   </td>
-                  <td className="small nowrap" title={`Ditutup ${fmtDateTime(tr.closeAt)}`}>
-                    {fmtShortDateTime(tr.openAt)}
+                  <td
+                    className="small nowrap"
+                    title={tr(`Ditutup ${fmtDateTime(rt.closeAt)}`, `Closed ${fmtDateTime(rt.closeAt)}`)}
+                  >
+                    {fmtShortDateTime(rt.openAt)}
                   </td>
-                  <td className="num muted">{fmtSpan(tr.closeAt - tr.openAt)}</td>
-                  <td className={`num ${pnlClass(tr.pnl)}`}>{fmtUsd(tr.pnl, { sign: true })}</td>
+                  <td className="num muted">{fmtSpan(rt.closeAt - rt.openAt)}</td>
+                  <td className={`num ${pnlClass(rt.pnl)}`}>{fmtUsd(rt.pnl, { sign: true })}</td>
                 </tr>
               ))}
               {!data.trips.length && (
                 <tr>
                   <td colSpan={5} className="dim">
-                    Belum ada trade yang selesai dalam periode data.
+                    {tr('Belum ada trade yang selesai dalam periode data.', 'No closed trades in the data period.')}
                   </td>
                 </tr>
               )}

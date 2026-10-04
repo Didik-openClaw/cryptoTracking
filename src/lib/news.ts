@@ -1,3 +1,4 @@
+import { tr } from './i18n';
 import { mode } from './mode';
 import { Observable } from './observable';
 import { settings } from './settings';
@@ -189,7 +190,7 @@ class NewsStore extends Observable {
     for (const [source, url] of attempts) {
       try {
         const items = parseNews(await getJson(url));
-        if (!items.length) throw new Error('kosong');
+        if (!items.length) throw new Error(tr('kosong', 'empty'));
         this.apply(items, source);
         return;
       } catch (e) {

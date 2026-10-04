@@ -1,4 +1,5 @@
 import { fmtPct, fmtPx, fmtSize, fmtUsd } from './format';
+import { tr } from './i18n';
 import { live } from './live';
 import { market } from './market';
 import { Observable } from './observable';
@@ -25,13 +26,37 @@ export interface WireEvent {
   address?: string;
 }
 
-export const WIRE_LABEL: Record<WireKind, string> = {
-  block: 'BLOK',
-  whale: 'WHALE',
-  move: 'HARGA',
-  funding: 'FUNDING',
-  oi: 'OI',
-  liq: 'LIKUIDASI',
+/** Short tag for each event kind, in the current language. */
+export const wireLabel = (kind: WireKind): string =>
+  ({
+    block: tr('BLOK', 'BLOCK'),
+    whale: 'WHALE',
+    move: tr('HARGA', 'PRICE'),
+    funding: 'FUNDING',
+    oi: 'OI',
+    liq: tr('LIKUIDASI', 'LIQ'),
+  })[kind];
+
+/** Same tags as `wireLabel`, read live (getters) so `WIRE_LABEL[kind]` follows the language too. */
+export const WIRE_LABEL: Readonly<Record<WireKind, string>> = {
+  get block() {
+    return wireLabel('block');
+  },
+  get whale() {
+    return wireLabel('whale');
+  },
+  get move() {
+    return wireLabel('move');
+  },
+  get funding() {
+    return wireLabel('funding');
+  },
+  get oi() {
+    return wireLabel('oi');
+  },
+  get liq() {
+    return wireLabel('liq');
+  },
 };
 
 const MAX_EVENTS = 300;
@@ -95,13 +120,15 @@ class Wire extends Observable {
     live.onBigTrade((t) => {
       const w = scanner.wallets.get(t.taker);
       const p = w?.positions.find((x) => x.coin === t.coin);
-      const holding = p ? ` · sekarang ${p.side === 'long' ? 'LONG' : 'SHORT'} ${fmtUsd(p.positionValue)}` : '';
+      const pos = p ? `${p.side === 'long' ? 'LONG' : 'SHORT'} ${fmtUsd(p.positionValue)}` : '';
+      const holding = p ? tr(` · sekarang ${pos}`, ` · now ${pos}`) : '';
+      const fills = tr(`${t.fills} fill`, `${t.fills} fill${t.fills === 1 ? '' : 's'}`);
       this.push({
         kind: 'block',
         coin: t.coin,
         tone: t.side === 'buy' ? 'pos' : 'neg',
-        title: `${t.side === 'buy' ? 'Beli' : 'Jual'} ${t.coin} ${fmtUsd(t.notional)}`,
-        detail: `${fmtSize(t.size)} @ ${fmtPx(t.avgPx)} · ${t.fills} fill${holding} ·`,
+        title: `${t.side === 'buy' ? tr('Beli', 'Buy') : tr('Jual', 'Sell')} ${t.coin} ${fmtUsd(t.notional)}`,
+        detail: `${fmtSize(t.size)} @ ${fmtPx(t.avgPx)} · ${fills}${holding} ·`,
         address: t.taker,
         time: t.time,
       });
@@ -113,8 +140,8 @@ class Wire extends Observable {
         kind: 'whale',
         coin: p.coin,
         tone: p.side === 'long' ? 'pos' : 'neg',
-        title: `Posisi baru ${p.side === 'long' ? 'LONG' : 'SHORT'} ${p.coin} ${fmtUsd(p.positionValue)}`,
-        detail: `Entry ${fmtPx(p.entryPx)} · ${p.leverage}x · likuidasi ${fmtPx(p.liquidationPx)} ·`,
+        title: `${tr('Posisi baru', 'New')} ${p.side === 'long' ? 'LONG' : 'SHORT'} ${p.coin} ${fmtUsd(p.positionValue)}`,
+        detail: `Entry ${fmtPx(p.entryPx)} · ${p.leverage}x · ${tr('likuidasi', 'Liq.')} ${fmtPx(p.liquidationPx)} ·`,
         address,
       });
     });
@@ -153,8 +180,11 @@ class Wire extends Observable {
           kind: 'move',
           coin,
           tone: chg > 0 ? 'pos' : 'neg',
-          title: `${coin} ${chg > 0 ? 'naik' : 'turun'} ${fmtPct(Math.abs(chg), { decimals: 1 })} dalam 15 menit`,
-          detail: `Sekarang ${fmtPx(px)}`,
+          title: tr(
+            `${coin} ${chg > 0 ? 'naik' : 'turun'} ${fmtPct(Math.abs(chg), { decimals: 1 })} dalam 15 menit`,
+            `${coin} ${chg > 0 ? 'up' : 'down'} ${fmtPct(Math.abs(chg), { decimals: 1 })} in 15 min`,
+          ),
+          detail: `${tr('Sekarang', 'Now')} ${fmtPx(px)}`,
         });
       }
     }
@@ -163,12 +193,13 @@ class Wire extends Observable {
       const key = `${p.address}|${p.coin}|${p.side}`;
       const d = p.liqDistance;
       if (crossing(this.liqArmed, key, d !== null && d < LIQ_NEAR, d === null || d > LIQ_REARM)) {
+        const pos = `${p.side === 'long' ? 'LONG' : 'SHORT'} ${p.coin} ${fmtUsd(p.notional)} ${fmtPct(d, { decimals: 1 })}`;
         this.push({
           kind: 'liq',
           coin: p.coin,
           tone: 'warn',
-          title: `${p.side === 'long' ? 'LONG' : 'SHORT'} ${p.coin} ${fmtUsd(p.notional)} ${fmtPct(d, { decimals: 1 })} dari likuidasi`,
-          detail: `Mark ${fmtPx(p.mark)} · likuidasi ${fmtPx(p.liquidationPx)} · ${p.leverage}x ·`,
+          title: tr(`${pos} dari likuidasi`, `${pos} from liquidation`),
+          detail: `Mark ${fmtPx(p.mark)} · ${tr('likuidasi', 'Liq.')} ${fmtPx(p.liquidationPx)} · ${p.leverage}x ·`,
           address: p.address,
         });
       }
@@ -187,8 +218,15 @@ class Wire extends Observable {
           kind: 'funding',
           coin,
           tone: 'warn',
-          title: `Funding ${coin} ekstrem ${fmtPct(f, { decimals: 4, sign: true })}/jam`,
-          detail: `${fmtPct(f * 24 * 365, { decimals: 0, sign: true })} APR · ${f > 0 ? 'long membayar short (long ramai)' : 'short membayar long (short ramai)'}`,
+          title: tr(
+            `Funding ${coin} ekstrem ${fmtPct(f, { decimals: 4, sign: true })}/jam`,
+            `Extreme ${coin} funding ${fmtPct(f, { decimals: 4, sign: true })}/h`,
+          ),
+          detail: `${fmtPct(f * 24 * 365, { decimals: 0, sign: true })} APR · ${
+            f > 0
+              ? tr('long membayar short (long ramai)', 'longs pay shorts (crowded long)')
+              : tr('short membayar long (short ramai)', 'shorts pay longs (crowded short)')
+          }`,
         });
       }
 
@@ -205,8 +243,13 @@ class Wire extends Observable {
         kind: 'oi',
         coin,
         tone: chg > 0 ? 'info' : 'warn',
-        title: `Open interest ${coin} ${chg > 0 ? 'naik' : 'turun'} ${fmtPct(Math.abs(chg), { decimals: 1 })} dalam 30 menit`,
-        detail: `${fmtUsd(deltaUsd, { sign: true })} → ${fmtUsd(c.openInterestUsd)} · ${chg > 0 ? 'posisi baru masuk' : 'posisi ditutup / dilikuidasi'}`,
+        title: tr(
+          `Open interest ${coin} ${chg > 0 ? 'naik' : 'turun'} ${fmtPct(Math.abs(chg), { decimals: 1 })} dalam 30 menit`,
+          `${coin} open interest ${chg > 0 ? 'up' : 'down'} ${fmtPct(Math.abs(chg), { decimals: 1 })} in 30 min`,
+        ),
+        detail: `${fmtUsd(deltaUsd, { sign: true })} → ${fmtUsd(c.openInterestUsd)} · ${
+          chg > 0 ? tr('posisi baru masuk', 'new positions opening') : tr('posisi ditutup / dilikuidasi', 'positions closed / liquidated')
+        }`,
       });
     }
   }

@@ -1,5 +1,6 @@
 import { apiStats, limiter } from '../lib/api';
 import { fmtAgo, fmtUsd } from '../lib/format';
+import { tr } from '../lib/i18n';
 import { live } from '../lib/live';
 import { mode } from '../lib/mode';
 import { useObservable } from '../lib/observable';
@@ -18,23 +19,24 @@ export function StatusBar() {
     <footer className="statusbar">
       <span>
         <b>SRC</b>
-        {mode.demo ? 'SIMULASI (demo)' : 'Hyperliquid mainnet'}
+        {mode.demo ? tr('SIMULASI (demo)', 'SIMULATED (demo)') : 'Hyperliquid mainnet'}
       </span>
       <span>
         <b>WS</b>
-        {socket.status === 'open' ? 'ON' : socket.status === 'connecting' ? '…' : 'OFF'} · {live.coins.length} coin
+        {socket.status === 'open' ? 'ON' : socket.status === 'connecting' ? '…' : 'OFF'} · {live.coins.length} {tr('coin', 'coins')}
       </span>
       <span>
         <b>SCAN</b>
-        {pass.done.toLocaleString('en-US')}/{pass.total.toLocaleString('en-US')} · {scanner.scanRate}/mnt
+        {pass.done.toLocaleString('en-US')}/{pass.total.toLocaleString('en-US')} · {scanner.scanRate}/{tr('mnt', 'min')}
       </span>
       <span className="opt">
         <b>WHALE</b>
-        {scanner.livePositions(new Map(), s.minPositionUsd).length} posisi ≥ {fmtUsd(s.minPositionUsd, { decimals: 0 })}
+        {scanner.livePositions(new Map(), s.minPositionUsd).length} {tr('posisi', 'positions')} ≥{' '}
+        {fmtUsd(s.minPositionUsd, { decimals: 0 })}
       </span>
       <span className="opt">
         <b>REST</b>
-        {apiStats.requests.toLocaleString('en-US')} req · antre {limiter.pending}
+        {apiStats.requests.toLocaleString('en-US')} req · {tr('antre', 'queue')} {limiter.pending}
         {apiStats.rateLimited > 0 && ` · 429×${apiStats.rateLimited}`}
       </span>
       {scanner.restoredAt > 0 && pass.n <= 1 && (
@@ -43,7 +45,7 @@ export function StatusBar() {
           {fmtAgo(scanner.restoredAt)}
         </span>
       )}
-      <span className="sp dim">Data publik · bukan saran finansial</span>
+      <span className="sp dim">{tr('Data publik · bukan saran finansial', 'Public data · not financial advice')}</span>
     </footer>
   );
 }

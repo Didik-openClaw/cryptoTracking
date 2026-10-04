@@ -36,7 +36,9 @@ browser pengunjung.
 | **Live Trade Besar** (`#/live`) | Market order ≥ $1M secara real-time lewat websocket. Fill-fill kecil dari satu order digabung jadi satu baris. Ditampilkan juga posisi trader saat ini, maker terbesar, arus beli/jual 5 menit/15 menit/1 jam, dan trader paling agresif. Trader yang masuk besar otomatis ikut dipindai scanner. |
 | **Detail wallet** (`#/wallet/0x…`) | Nilai akun, leverage efektif, grafik PnL/equity (24 jam/7 hari/30 hari/semua), semua posisi, chart trade dengan marker beli/jual, open order (termasuk TP/SL), riwayat trade (2000 fill terakhir), funding, deposit/withdraw/transfer, saldo spot, dan statistik (volume, win rate, PnL terealisasi, fee, likuidasi). |
 | **Watchlist & Alert** (`#/watchlist`) | Simpan wallet favorit dan beri nama. Alert muncul untuk setiap trade, buka/tutup/tambah/kurangi posisi, balik arah, posisi yang mendekati likuidasi, dan (opsional) whale baru dari scanner. Notifikasi dikirim lewat browser, bunyi, dan log. Watchlist bisa di-import/export. |
-| **Pengaturan** (`#/settings`) | Jumlah akun yang dipindai, kecepatan request, threshold, interval refresh, dan status koneksi. |
+| **Pengaturan** (`#/settings`) | Bahasa, tema, jumlah akun yang dipindai, kecepatan request, threshold, interval refresh, dan status koneksi. |
+| **Indikator chart** (tombol **Indikator** di atas chart) | 17 indikator yang bisa dinyalakan dan diatur periode, sumber harga, dan warnanya. Di chart harga: 3 Moving Average (SMA/EMA/WMA), Bollinger Bands, VWAP (harian/mingguan/bulanan), Supertrend, Parabolic SAR, Ichimoku. Di panel bawah: Volume (+MA), RSI (level overbought/oversold), MACD, Stochastic RSI, Stochastic, ATR, ADX/DMI, OBV, CCI. Legenda menampilkan OHLC dan nilai indikator di posisi kursor. Interval 5m, 15m, 1h, 4h, 1d, 1w. Pengaturan berlaku untuk semua chart dan tersimpan di browser. |
+| **Bahasa** (tombol **ID / EN** di header) | Seluruh situs (terminal, halaman beli, admin) dalam Bahasa Indonesia atau English. Tautan `?lang=en` membuka versi Inggris. |
 
 ## Cara kerja
 
@@ -174,6 +176,8 @@ src/
     live.ts         live feed trade besar (aggregator.ts: gabung fill per order)
     watchlist.ts    watchlist, polling, alert (alerts.ts: deteksi perubahan posisi)
     market.ts       harga, funding, open interest
+    indicators.ts   rumus indikator teknikal (indicatorSettings.ts: daftar, parameter, warna)
+    i18n.ts         bahasa Indonesia / English: tr('Posisi', 'Positions')
   components/     komponen UI (tabel, chart, header)
   pages/          halaman terminal
   beli/           halaman beli (publik)

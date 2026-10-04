@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fmtAgo, fmtPx, fmtSize, fmtUsd } from '../lib/format';
+import { tr } from '../lib/i18n';
 import type { LivePosition } from '../lib/types';
 import { openTimes } from '../lib/openTimes';
 import { Addr } from './Addr';
@@ -56,7 +57,8 @@ export function PositionsTable({
     for (const address of new Set(sorted.slice(0, Math.min(limit, OPEN_TIME_ROWS)).map((p) => p.address))) openTimes.request(address);
   }, [sorted, limit]);
 
-  if (!rows.length) return <Empty>{emptyText ?? 'Belum ada posisi yang cocok dengan filter.'}</Empty>;
+  if (!rows.length)
+    return <Empty>{emptyText ?? tr('Belum ada posisi yang cocok dengan filter.', 'No positions match the filter.')}</Empty>;
 
   return (
     <>
@@ -66,19 +68,30 @@ export function PositionsTable({
             <tr>
               {showWallet && th('wallet', 'Wallet')}
               {showCoin && th('coin', 'Coin')}
-              {th('side', 'Sisi')}
-              {th('opened', 'Dibuka', { title: 'Waktu posisi dibuka, dari fill pembuka (m = menit, j = jam, hr = hari)' })}
+              {th('side', tr('Sisi', 'Side'))}
+              {th('opened', tr('Dibuka', 'Opened'), {
+                title: tr(
+                  'Waktu posisi dibuka, dari fill pembuka (m = menit, j = jam, hr = hari)',
+                  'When the position was opened, from the opening fill (m = minutes, h = hours, d = days)',
+                ),
+              })}
               {th('size', 'Size', { num: true })}
-              {th('notional', 'Nilai Posisi', { num: true })}
+              {th('notional', tr('Nilai Posisi', 'Notional'), { num: true })}
               {th('entry', 'Entry', { num: true })}
               {th('mark', 'Mark', { num: true })}
-              {th('liq', 'Harga Likuidasi', { num: true })}
-              {th('dist', 'Jarak Liq.', { num: true, title: 'Seberapa jauh harga harus bergerak sampai posisi terlikuidasi' })}
+              {th('liq', tr('Harga Likuidasi', 'Liq. Price'), { num: true })}
+              {th('dist', tr('Jarak Liq.', 'Liq. Dist.'), {
+                num: true,
+                title: tr(
+                  'Seberapa jauh harga harus bergerak sampai posisi terlikuidasi',
+                  'How far price must move before the position is liquidated',
+                ),
+              })}
               {th('lev', 'Leverage', { num: true })}
               {th('pnl', 'uPnL', { num: true })}
               {th('roe', 'ROE', { num: true })}
-              {showWallet && th('equity', 'Equity Akun', { num: true })}
-              {th('updated', 'Update', { num: true })}
+              {showWallet && th('equity', tr('Equity Akun', 'Account Equity'), { num: true })}
+              {th('updated', tr('Update', 'Updated'), { num: true })}
             </tr>
           </thead>
           <tbody>
@@ -131,7 +144,10 @@ export function PositionsTable({
       {sorted.length > limit && (
         <div className="row" style={{ justifyContent: 'center', marginTop: 10 }}>
           <button type="button" className="btn" onClick={() => setLimit(limit + PAGE)}>
-            Tampilkan {Math.min(PAGE, sorted.length - limit)} lagi ({sorted.length - limit} tersisa)
+            {tr(
+              `Tampilkan ${Math.min(PAGE, sorted.length - limit)} lagi (${sorted.length - limit} tersisa)`,
+              `Show ${Math.min(PAGE, sorted.length - limit)} more (${sorted.length - limit} left)`,
+            )}
           </button>
         </div>
       )}

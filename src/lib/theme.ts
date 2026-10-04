@@ -1,3 +1,4 @@
+import { tr } from './i18n';
 import { Observable } from './observable';
 import { load, save } from './storage';
 
@@ -9,7 +10,7 @@ import { load, save } from './storage';
 export type ThemePref = 'dark' | 'light' | 'auto';
 export type ThemeMode = 'dark' | 'light';
 
-export const THEME_LABEL: Record<ThemePref, string> = { dark: 'Gelap', light: 'Terang', auto: 'Auto' };
+export const themeLabel = (pref: ThemePref) => ({ dark: tr('Gelap', 'Dark'), light: tr('Terang', 'Light'), auto: 'Auto' })[pref];
 
 class Theme extends Observable {
   pref: ThemePref = load<ThemePref>('theme', 'dark');

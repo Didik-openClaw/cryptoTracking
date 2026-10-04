@@ -1,5 +1,6 @@
 import { LEADERBOARD_URL } from './api';
 import { num } from './format';
+import { tr } from './i18n';
 import { load, save } from './storage';
 import type { PerfWindow, SeedAccount } from './types';
 
@@ -147,7 +148,12 @@ export async function loadSeeds(forceLive = false, log: (msg: string) => void = 
   }
 
   try {
-    log('Mengunduh leaderboard Hyperliquid langsung (file besar, bisa 10–60 detik)…');
+    log(
+      tr(
+        'Mengunduh leaderboard Hyperliquid langsung (file besar, bisa 10–60 detik)…',
+        'Downloading the Hyperliquid leaderboard directly (large file, may take 10–60 s)…',
+      ),
+    );
     const json = await fetchJson(LEADERBOARD_URL, 120_000);
     const accounts = topAccounts(parseLeaderboard(json));
     if (accounts.length) {
@@ -155,10 +161,11 @@ export async function loadSeeds(forceLive = false, log: (msg: string) => void = 
       return { accounts, source: 'direct', generatedAt: now };
     }
   } catch (e) {
-    log(`Leaderboard langsung gagal dimuat (${(e as Error).message}).`);
+    const why = (e as Error).message;
+    log(tr(`Leaderboard langsung gagal dimuat (${why}).`, `Direct leaderboard download failed (${why}).`));
   }
 
   if (bundled) return { ...bundled, source: 'stale' };
   if (cached?.rows.length) return { accounts: parseLeaderboard(cached), source: 'stale', generatedAt: cached.generatedAt };
-  throw new Error('Leaderboard tidak bisa dimuat dari sumber mana pun.');
+  throw new Error(tr('Leaderboard tidak bisa dimuat dari sumber mana pun.', 'Leaderboard could not be loaded from any source.'));
 }

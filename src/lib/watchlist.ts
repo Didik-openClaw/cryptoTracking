@@ -1,6 +1,7 @@
 import { diffSnapshots, type AlertEvent } from './alerts';
 import { getClearinghouseState, Priority } from './api';
 import { fmtPx, fmtSize, fmtUsd, isAddress, num, shortAddr } from './format';
+import { tr } from './i18n';
 import { live } from './live';
 import { notifier } from './notify';
 import { Observable } from './observable';
@@ -78,7 +79,7 @@ class Watchlist extends Observable {
         severity: 'warn',
         address,
         label: seed?.displayName ?? '',
-        title: `WHALE BARU: ${p.side === 'long' ? 'LONG' : 'SHORT'} ${p.coin} ${fmtUsd(p.positionValue)}`,
+        title: `${tr('WHALE BARU', 'NEW WHALE')}: ${p.side === 'long' ? 'LONG' : 'SHORT'} ${p.coin} ${fmtUsd(p.positionValue)}`,
         body: `${shortAddr(address)} · entry ${fmtPx(p.entryPx)} · ${p.leverage}x`,
       });
     });
@@ -94,7 +95,7 @@ class Watchlist extends Observable {
         severity: 'info',
         address: e.address,
         label: e.label,
-        title: `${t.side === 'buy' ? 'BELI' : 'JUAL'} ${t.coin} ${fmtUsd(t.notional)}`,
+        title: `${t.side === 'buy' ? tr('BELI', 'BUY') : tr('JUAL', 'SELL')} ${t.coin} ${fmtUsd(t.notional)}`,
         body: `${fmtSize(t.size)} ${t.coin} @ ${fmtPx(t.avgPx)}`,
       });
       this.lastPolled.set(e.address, 0);
@@ -301,6 +302,7 @@ class Watchlist extends Observable {
       const avg = b.size > 0 ? b.notional / b.size : 0;
       const pnl = b.closedPnl !== 0 ? ` · PnL ${fmtUsd(b.closedPnl, { sign: true })}` : '';
       const liquidated = /liquidat/i.test(b.dir);
+      const fills = tr(`${b.fills} fill`, `${b.fills} fill${b.fills === 1 ? '' : 's'}`);
       this.pushAlert({
         kind: 'trade',
         coin: b.coin,
@@ -308,26 +310,26 @@ class Watchlist extends Observable {
         address: b.user,
         label: e.label,
         title: `${translateDir(b.dir)} ${b.coin} ${fmtUsd(b.notional)}`,
-        body: `${fmtSize(b.size)} ${b.coin} @ ${fmtPx(avg)} (${b.fills} fill)${pnl}`,
+        body: `${fmtSize(b.size)} ${b.coin} @ ${fmtPx(avg)} (${fills})${pnl}`,
       });
     }
   }
 }
 
-/** Hyperliquid fill directions → Indonesian. */
+/** Hyperliquid fill directions (English in the API) → the interface language. */
 export function translateDir(dir: string): string {
   const map: Record<string, string> = {
-    'Open Long': 'Buka Long',
-    'Open Short': 'Buka Short',
-    'Close Long': 'Tutup Long',
-    'Close Short': 'Tutup Short',
-    'Long > Short': 'Balik Long → Short',
-    'Short > Long': 'Balik Short → Long',
-    Buy: 'Beli',
-    Sell: 'Jual',
+    'Open Long': tr('Buka Long', 'Open Long'),
+    'Open Short': tr('Buka Short', 'Open Short'),
+    'Close Long': tr('Tutup Long', 'Close Long'),
+    'Close Short': tr('Tutup Short', 'Close Short'),
+    'Long > Short': tr('Balik Long → Short', 'Flip Long → Short'),
+    'Short > Long': tr('Balik Short → Long', 'Flip Short → Long'),
+    Buy: tr('Beli', 'Buy'),
+    Sell: tr('Jual', 'Sell'),
   };
   if (map[dir]) return map[dir];
-  if (/liquidat/i.test(dir)) return `Likuidasi (${dir})`;
+  if (/liquidat/i.test(dir)) return tr(`Likuidasi (${dir})`, dir);
   return dir;
 }
 

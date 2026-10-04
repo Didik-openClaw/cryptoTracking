@@ -9,6 +9,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { TopWhalesPage } from './pages/TopWhalesPage';
 import { WalletPage } from './pages/WalletPage';
 import { WatchlistPage } from './pages/WatchlistPage';
+import { tr } from './lib/i18n';
 import { mode } from './lib/mode';
 import { useRoute } from './router';
 
@@ -49,8 +50,16 @@ export function App() {
       <main>
         {mode.demo && (
           <div className="demo-banner">
-            <b>MODE DEMO</b> · Semua angka, wallet, dan trade di layar ini <b>simulasi</b>, bukan data Hyperliquid asli. Versi
-            live mengambil data langsung dari API Hyperliquid setelah website di-deploy.
+            {tr(
+              <>
+                <b>MODE DEMO</b> · Semua angka, wallet, dan trade di layar ini <b>simulasi</b>, bukan data Hyperliquid asli. Versi
+                live mengambil data langsung dari API Hyperliquid setelah website di-deploy.
+              </>,
+              <>
+                <b>DEMO MODE</b> · All numbers, wallets and trades on this screen are <b>simulated</b>, not real Hyperliquid data. The
+                live version pulls data straight from the Hyperliquid API once the site is deployed.
+              </>,
+            )}
           </div>
         )}
         {content}

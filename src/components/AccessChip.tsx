@@ -1,5 +1,6 @@
 import { access } from '../lib/access';
 import { fmtCountdown, fmtDate, useNow } from '../lib/accessClient';
+import { tr } from '../lib/i18n';
 import { mode } from '../lib/mode';
 import { useObservable } from '../lib/observable';
 
@@ -14,8 +15,15 @@ function Countdown() {
   const left = me.exp - now;
   const tone = left < DAY ? 'danger' : left < 3 * DAY ? 'warn' : '';
   return (
-    <a className={`access-chip ${tone}`} href="/beli/" title={`${me.name} · akses sampai ${fmtDate(me.exp)} · klik untuk perpanjang`}>
-      <b>AKSES</b>
+    <a
+      className={`access-chip ${tone}`}
+      href="/beli/"
+      title={tr(
+        `${me.name} · akses sampai ${fmtDate(me.exp)} · klik untuk perpanjang`,
+        `${me.name} · access until ${fmtDate(me.exp)} · click to renew`,
+      )}
+    >
+      <b>{tr('AKSES', 'ACCESS')}</b>
       {fmtCountdown(left, true)}
     </a>
   );
@@ -27,7 +35,8 @@ export function AccessChip() {
   if (mode.demo) {
     return BUY_URL ? (
       <a className="access-chip demo" href={BUY_URL}>
-        <b>DEMO</b>Beli akses
+        <b>DEMO</b>
+        {tr('Beli akses', 'Buy access')}
       </a>
     ) : null;
   }

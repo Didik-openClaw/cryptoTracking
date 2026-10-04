@@ -1,4 +1,5 @@
 import { apiStats, getClearinghouseState, Priority } from './api';
+import { tr } from './i18n';
 import { loadSeeds, type SeedSource } from './leaderboard';
 import { Observable, sleep } from './observable';
 import { openTimes } from './openTimes';
@@ -107,7 +108,7 @@ class Scanner extends Observable {
 
   async loadSeed(forceLive: boolean): Promise<void> {
     this.status = 'seeding';
-    this.statusMsg = 'Memuat daftar akun dari leaderboard Hyperliquid…';
+    this.statusMsg = tr('Memuat daftar akun dari leaderboard Hyperliquid…', 'Loading accounts from the Hyperliquid leaderboard…');
     this.emit(true);
     try {
       const res = await loadSeeds(forceLive, (m) => {
@@ -118,7 +119,11 @@ class Scanner extends Observable {
       this.seed = { source: res.source, generatedAt: res.generatedAt, count: res.accounts.length };
       this.statusMsg = '';
     } catch (e) {
-      this.statusMsg = `${(e as Error).message} Scanner tetap memindai watchlist & whale dari live feed.`;
+      const why = (e as Error).message;
+      this.statusMsg = tr(
+        `${why} Scanner tetap memindai watchlist & whale dari live feed.`,
+        `${why} Scanner still covers the watchlist & whales from the live feed.`,
+      );
       this.seed = this.seed ?? { source: 'stale', generatedAt: 0, count: 0 };
     }
     this.status = this.running ? 'scanning' : 'paused';

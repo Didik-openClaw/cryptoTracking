@@ -1,10 +1,11 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { fmtPct, fmtUsd, pnlClass } from '../lib/format';
+import { tr } from '../lib/i18n';
 import type { Side } from '../lib/types';
 
 export function SideBadge({ side }: { side: Side | 'buy' | 'sell' }) {
   const cls = side === 'long' || side === 'buy' ? 'long' : 'short';
-  const label = { long: 'LONG', short: 'SHORT', buy: 'BELI', sell: 'JUAL' }[side];
+  const label = { long: 'LONG', short: 'SHORT', buy: tr('BELI', 'BUY'), sell: tr('JUAL', 'SELL') }[side];
   return <span className={`side ${cls}`}>{label}</span>;
 }
 
@@ -102,17 +103,17 @@ export function ConfirmButton({
           onConfirm();
         }}
       >
-        Ya
+        {tr('Ya', 'Yes')}
       </button>
       <button type="button" className="btn sm ghost" onClick={() => setAsking(false)}>
-        Batal
+        {tr('Batal', 'Cancel')}
       </button>
     </span>
   );
 }
 
 export function Spinner() {
-  return <span className="spinner" aria-label="memuat" />;
+  return <span className="spinner" aria-label={tr('memuat', 'loading')} />;
 }
 
 export function Empty({ children }: { children: ReactNode }) {

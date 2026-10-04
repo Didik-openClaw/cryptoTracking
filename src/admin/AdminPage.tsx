@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { LangButton } from '../components/LangButton';
 import { ConfirmButton, Empty, Seg, Spinner, StatCard } from '../components/ui';
 import {
   api,
@@ -12,8 +13,9 @@ import {
   type Order,
   type PublicConfig,
 } from '../lib/accessClient';
+import { tr } from '../lib/i18n';
 import { useObservable } from '../lib/observable';
-import { THEME_LABEL, theme } from '../lib/theme';
+import { themeLabel, theme } from '../lib/theme';
 
 type Config = Omit<PublicConfig, 'serverTime'>;
 
@@ -36,21 +38,42 @@ const writeToken = (t: string) => {
 
 const DAY = 86_400_000;
 
-/** Message the admin sends the buyer with their code. */
+/** Displayed labels; the stored status values stay Indonesian. */
+const orderStatusLabel = (s: Order['status']) =>
+  ({ baru: tr('baru', 'new'), selesai: tr('selesai', 'done'), batal: tr('batal', 'cancelled') })[s];
+const codeStatusLabel = (s: CodeStatus) =>
+  ({ aktif: tr('aktif', 'active'), habis: tr('habis', 'expired'), dicabut: tr('dicabut', 'revoked') })[s];
+
+/** Message the admin sends the buyer with their code (in the admin's current language). */
 function codeMessage(c: AccessCode, maxDevices: number): string {
-  return [
-    `Halo ${c.name}, terima kasih sudah membeli akses DTY Crypto Terminal.`,
-    '',
-    `Kode akses: ${c.code}`,
-    `Aktif sampai: ${fmtDate(c.exp)}`,
-    '',
-    'Cara aktivasi:',
-    `1. Buka ${location.origin}/beli/`,
-    '2. Masukkan kode di kolom "Aktifkan kode akses"',
-    '3. Klik Aktifkan, terminal langsung terbuka.',
-    '',
-    `Satu kode bisa dipakai di ${maxDevices} perangkat. Jangan bagikan kode ini.`,
-  ].join('\n');
+  return tr(
+    [
+      `Halo ${c.name}, terima kasih sudah membeli akses DTY Crypto Terminal.`,
+      '',
+      `Kode akses: ${c.code}`,
+      `Aktif sampai: ${fmtDate(c.exp)}`,
+      '',
+      'Cara aktivasi:',
+      `1. Buka ${location.origin}/beli/`,
+      '2. Masukkan kode di kolom "Aktifkan kode akses"',
+      '3. Klik Aktifkan, terminal langsung terbuka.',
+      '',
+      `Satu kode bisa dipakai di ${maxDevices} perangkat. Jangan bagikan kode ini.`,
+    ],
+    [
+      `Hi ${c.name}, thank you for buying DTY Crypto Terminal access.`,
+      '',
+      `Access code: ${c.code}`,
+      `Active until: ${fmtDate(c.exp)}`,
+      '',
+      'How to activate:',
+      `1. Open ${location.origin}/beli/?lang=en`,
+      '2. Enter the code in the "Activate access code" field',
+      '3. Click Activate and the terminal opens right away.',
+      '',
+      `One code works on up to ${maxDevices} devices. Please do not share this code.`,
+    ],
+  ).join('\n');
 }
 
 function copy(text: string) {
@@ -68,10 +91,11 @@ export function AdminPage() {
             <span className="logo">DTY</span>Admin
           </a>
           <span className="grow" />
-          <button type="button" className="theme-btn" onClick={() => theme.cycle()} title="Ganti tema">
+          <button type="button" className="theme-btn" onClick={() => theme.cycle()} title={tr('Ganti tema', 'Change theme')}>
             <span className="theme-icon" aria-hidden="true" />
-            {THEME_LABEL[theme.pref]}
+            {themeLabel(theme.pref)}
           </button>
+          <LangButton />
           {token && (
             <button
               type="button"
@@ -81,7 +105,7 @@ export function AdminPage() {
                 setToken('');
               }}
             >
-              Keluar
+              {tr('Keluar', 'Log out')}
             </button>
           )}
         </div>
@@ -128,18 +152,23 @@ function Login({ onLogin }: { onLogin: (token: string) => void }) {
   return (
     <section className="panel" style={{ maxWidth: 420, margin: '40px auto' }}>
       <div className="panel-head">
-        <h2>Masuk admin</h2>
+        <h2>{tr('Masuk admin', 'Admin login')}</h2>
       </div>
       <form className="stack" style={{ gap: 8 }} onSubmit={submit}>
         <label className="field">
-          <span>Password admin</span>
+          <span>{tr('Password admin', 'Admin password')}</span>
           <input id="admin-password" className="input" type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="current-password" required />
         </label>
         {error && <div className="small danger">{error}</div>}
         <button type="submit" className="btn primary" disabled={busy}>
-          {busy ? 'Memeriksa…' : 'Masuk'}
+          {busy ? tr('Memeriksa…', 'Checking…') : tr('Masuk', 'Log in')}
         </button>
-        <div className="dim small">Password diatur lewat environment variable ADMIN_PASSWORD di Netlify.</div>
+        <div className="dim small">
+          {tr(
+            'Password diatur lewat environment variable ADMIN_PASSWORD di Netlify.',
+            'The password is set with the ADMIN_PASSWORD environment variable on Netlify.',
+          )}
+        </div>
       </form>
     </section>
   );
@@ -208,28 +237,60 @@ function Dashboard({ token, onUnauthorized }: { token: string; onUnauthorized: (
       <div className="page-head">
         <div>
           <h1>
-            <span className="fn">ADMN</span>Penjualan Akses
+            <span className="fn">ADMN</span>
+            {tr('Penjualan Akses', 'Access Sales')}
           </h1>
-          <p>Pesanan dari halaman beli masuk ke sini. Setelah pembayaran diterima, buat kode akses dan kirim ke pembeli lewat WhatsApp.</p>
+          <p>
+            {tr(
+              'Pesanan dari halaman beli masuk ke sini. Setelah pembayaran diterima, buat kode akses dan kirim ke pembeli lewat WhatsApp.',
+              'Orders from the buy page land here. Once payment is received, create an access code and send it to the buyer on WhatsApp.',
+            )}
+          </p>
         </div>
         <button type="button" className="btn sm" onClick={() => void reload()}>
-          Muat ulang
+          {tr('Muat ulang', 'Reload')}
         </button>
       </div>
       {error && <div className="notice error">{error}</div>}
 
       <div className="cards">
-        <StatCard label="Pelanggan aktif" value={codes ? stats.active : <Spinner />} sub="kode akses yang masih berlaku" />
-        <StatCard label="Habis ≤ 7 hari" tone={stats.soon ? 'danger' : undefined} value={stats.soon} sub="ingatkan untuk perpanjang" />
-        <StatCard label="Nilai langganan aktif / bulan" value={fmtRupiah(stats.revenue)} sub={`${stats.active} × ${fmtRupiah(config?.price ?? 0)}`} />
-        <StatCard label="Pesanan baru" tone={stats.newOrders ? 'long' : undefined} value={stats.newOrders} sub="menunggu pembayaran / kode" />
+        <StatCard
+          label={tr('Pelanggan aktif', 'Active customers')}
+          value={codes ? stats.active : <Spinner />}
+          sub={tr('kode akses yang masih berlaku', 'access codes still valid')}
+        />
+        <StatCard
+          label={tr('Habis ≤ 7 hari', 'Expiring ≤ 7 days')}
+          tone={stats.soon ? 'danger' : undefined}
+          value={stats.soon}
+          sub={tr('ingatkan untuk perpanjang', 'remind them to renew')}
+        />
+        <StatCard
+          label={tr('Nilai langganan aktif / bulan', 'Active subscription value / month')}
+          value={fmtRupiah(stats.revenue)}
+          sub={`${stats.active} × ${fmtRupiah(config?.price ?? 0)}`}
+        />
+        <StatCard
+          label={tr('Pesanan baru', 'New orders')}
+          tone={stats.newOrders ? 'long' : undefined}
+          value={stats.newOrders}
+          sub={tr('menunggu pembayaran / kode', 'awaiting payment / code')}
+        />
       </div>
 
       <div className="grid-main">
         <div className="stack">
           <OrdersPanel
             orders={orders}
-            onMake={(o) => setDraft({ name: o.name, contact: o.contact, months: o.months, note: `Pesanan #${o.id}`, orderId: o.id })}
+            onMake={(o) =>
+              setDraft({
+                name: o.name,
+                contact: o.contact,
+                months: o.months,
+                note: tr(`Pesanan #${o.id}`, `Order #${o.id}`),
+                orderId: o.id,
+              })
+            }
             onStatus={async (o, status) => {
               await call(`/api/admin/orders/${o.id}/status`, { method: 'POST', body: JSON.stringify({ status }) });
               void reload();
@@ -294,8 +355,15 @@ function OrdersPanel({
   return (
     <section className="panel">
       <div className="panel-head">
-        <h2>Pesanan masuk</h2>
-        <Seg value={show} onChange={setShow} options={[{ value: 'baru', label: 'Baru' }, { value: 'semua', label: 'Semua' }]} />
+        <h2>{tr('Pesanan masuk', 'Incoming orders')}</h2>
+        <Seg
+          value={show}
+          onChange={setShow}
+          options={[
+            { value: 'baru', label: tr('Baru', 'New') },
+            { value: 'semua', label: tr('Semua', 'All') },
+          ]}
+        />
       </div>
       {!orders ? (
         <Empty>
@@ -307,10 +375,10 @@ function OrdersPanel({
             <thead>
               <tr>
                 <th>No.</th>
-                <th>Waktu</th>
-                <th>Nama</th>
+                <th>{tr('Waktu', 'Time')}</th>
+                <th>{tr('Nama', 'Name')}</th>
                 <th>WhatsApp</th>
-                <th className="num">Paket</th>
+                <th className="num">{tr('Paket', 'Package')}</th>
                 <th className="num">Total</th>
                 <th>Status</th>
                 <th />
@@ -323,30 +391,45 @@ function OrdersPanel({
                   <td className="small nowrap">{fmtDate(o.createdAt)}</td>
                   <td>{o.name}</td>
                   <td>
-                    <a href={waLink(o.contact, `Halo ${o.name}, ini admin DTY Crypto Terminal soal pesanan #${o.id}.`)} target="_blank" rel="noreferrer">
+                    <a
+                      href={waLink(
+                        o.contact,
+                        tr(
+                          `Halo ${o.name}, ini admin DTY Crypto Terminal soal pesanan #${o.id}.`,
+                          `Hi ${o.name}, this is the DTY Crypto Terminal admin about your order #${o.id}.`,
+                        ),
+                      )}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
                       +{o.contact}
                     </a>
                   </td>
-                  <td className="num">{o.months} bln</td>
+                  <td className="num">{tr(`${o.months} bln`, `${o.months} mo`)}</td>
                   <td className="num">{fmtRupiah(o.total)}</td>
                   <td>
-                    <span className={`tag${o.status === 'baru' ? ' accent' : ''}`}>{o.status}</span>
+                    <span className={`tag${o.status === 'baru' ? ' accent' : ''}`}>{orderStatusLabel(o.status)}</span>
                     {o.code && <div className="mono small dim">{o.code}</div>}
                   </td>
                   <td className="nowrap right">
                     {o.status === 'baru' && (
                       <>
-                        <button type="button" className="btn sm primary" onClick={() => onMake(o)} title="Isi form buat kode dari pesanan ini">
-                          Buat kode
+                        <button
+                          type="button"
+                          className="btn sm primary"
+                          onClick={() => onMake(o)}
+                          title={tr('Isi form buat kode dari pesanan ini', 'Fill in the create-code form from this order')}
+                        >
+                          {tr('Buat kode', 'Create code')}
                         </button>{' '}
                         <button type="button" className="btn sm ghost" onClick={() => onStatus(o, 'batal')}>
-                          Batal
+                          {tr('Batal', 'Cancel')}
                         </button>
                       </>
                     )}
                     {o.status !== 'baru' && (
                       <button type="button" className="btn sm ghost" onClick={() => onDelete(o)}>
-                        Hapus
+                        {tr('Hapus', 'Delete')}
                       </button>
                     )}
                   </td>
@@ -356,7 +439,9 @@ function OrdersPanel({
           </table>
         </div>
       ) : (
-        <Empty>{show === 'baru' ? 'Belum ada pesanan baru.' : 'Belum ada pesanan.'}</Empty>
+        <Empty>
+          {show === 'baru' ? tr('Belum ada pesanan baru.', 'No new orders yet.') : tr('Belum ada pesanan.', 'No orders yet.')}
+        </Empty>
       )}
     </section>
   );
@@ -387,17 +472,23 @@ function CodesPanel({
   return (
     <section className="panel">
       <div className="panel-head">
-        <h2>Pelanggan &amp; kode akses</h2>
+        <h2>{tr('Pelanggan & kode akses', 'Customers & access codes')}</h2>
         <div className="row">
-          <input className="input" style={{ width: 160 }} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama / kode" />
+          <input
+            className="input"
+            style={{ width: 160 }}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={tr('Cari nama / kode', 'Search name / code')}
+          />
           <Seg<Filter>
             value={filter}
             onChange={setFilter}
             options={[
-              { value: 'aktif', label: 'Aktif' },
-              { value: 'habis', label: 'Habis' },
-              { value: 'dicabut', label: 'Dicabut' },
-              { value: 'semua', label: 'Semua' },
+              { value: 'aktif', label: tr('Aktif', 'Active') },
+              { value: 'habis', label: tr('Habis', 'Expired') },
+              { value: 'dicabut', label: tr('Dicabut', 'Revoked') },
+              { value: 'semua', label: tr('Semua', 'All') },
             ]}
           />
         </div>
@@ -411,12 +502,12 @@ function CodesPanel({
           <table>
             <thead>
               <tr>
-                <th>Kode</th>
-                <th>Pelanggan</th>
-                <th>Berakhir</th>
-                <th className="num">Sisa</th>
+                <th>{tr('Kode', 'Code')}</th>
+                <th>{tr('Pelanggan', 'Customer')}</th>
+                <th>{tr('Berakhir', 'Expires')}</th>
+                <th className="num">{tr('Sisa', 'Left')}</th>
                 <th>Status</th>
-                <th className="num">Perangkat</th>
+                <th className="num">{tr('Perangkat', 'Devices')}</th>
                 <th />
               </tr>
             </thead>
@@ -428,7 +519,7 @@ function CodesPanel({
                   <tr key={c.code}>
                     <td className="mono nowrap">
                       {c.code}{' '}
-                      <button type="button" className="icon-btn" title="Salin kode" onClick={() => copy(c.code)}>
+                      <button type="button" className="icon-btn" title={tr('Salin kode', 'Copy code')} onClick={() => copy(c.code)}>
                         ⧉
                       </button>
                     </td>
@@ -436,7 +527,12 @@ function CodesPanel({
                       <b>{c.name}</b>
                       {c.contact && (
                         <div className="small">
-                          <a href={waLink(c.contact, codeMessage(c, maxDevices))} target="_blank" rel="noreferrer" title="Kirim ulang kode lewat WhatsApp">
+                          <a
+                            href={waLink(c.contact, codeMessage(c, maxDevices))}
+                            target="_blank"
+                            rel="noreferrer"
+                            title={tr('Kirim ulang kode lewat WhatsApp', 'Resend the code via WhatsApp')}
+                          >
                             +{c.contact}
                           </a>
                         </div>
@@ -448,33 +544,59 @@ function CodesPanel({
                       {st === 'aktif' ? fmtCountdown(left, true) : '–'}
                     </td>
                     <td>
-                      <span className={`tag${st === 'aktif' ? ' accent' : st === 'dicabut' ? ' danger' : ''}`}>{st}</span>
+                      <span className={`tag${st === 'aktif' ? ' accent' : st === 'dicabut' ? ' danger' : ''}`}>
+                        {codeStatusLabel(st)}
+                      </span>
                     </td>
                     <td className="num">
                       {c.devices.length}/{maxDevices}
                     </td>
                     <td className="nowrap right">
-                      <button type="button" className="btn sm" onClick={() => onAction(c, 'extend', 1)} title="Tambah 30 hari">
-                        +1 bln
+                      <button
+                        type="button"
+                        className="btn sm"
+                        onClick={() => onAction(c, 'extend', 1)}
+                        title={tr('Tambah 30 hari', 'Add 30 days')}
+                      >
+                        {tr('+1 bln', '+1 mo')}
                       </button>{' '}
-                      <button type="button" className="btn sm" onClick={() => onAction(c, 'extend', 3)} title="Tambah 90 hari">
+                      <button
+                        type="button"
+                        className="btn sm"
+                        onClick={() => onAction(c, 'extend', 3)}
+                        title={tr('Tambah 90 hari', 'Add 90 days')}
+                      >
                         +3
                       </button>{' '}
                       {c.devices.length > 0 && (
                         <>
-                          <button type="button" className="btn sm ghost" onClick={() => onAction(c, 'reset-devices')} title="Keluarkan semua perangkat">
+                          <button
+                            type="button"
+                            className="btn sm ghost"
+                            onClick={() => onAction(c, 'reset-devices')}
+                            title={tr('Keluarkan semua perangkat', 'Log out all devices')}
+                          >
                             Reset
                           </button>{' '}
                         </>
                       )}
                       {c.revoked ? (
                         <button type="button" className="btn sm ghost" onClick={() => onAction(c, 'restore')}>
-                          Pulihkan
+                          {tr('Pulihkan', 'Restore')}
                         </button>
                       ) : (
-                        <ConfirmButton label="Cabut" question="Cabut akses?" onConfirm={() => onAction(c, 'revoke')} />
+                        <ConfirmButton
+                          label={tr('Cabut', 'Revoke')}
+                          question={tr('Cabut akses?', 'Revoke access?')}
+                          onConfirm={() => onAction(c, 'revoke')}
+                        />
                       )}{' '}
-                      <ConfirmButton label="Hapus" question="Hapus permanen?" danger onConfirm={() => onAction(c, 'delete')} />
+                      <ConfirmButton
+                        label={tr('Hapus', 'Delete')}
+                        question={tr('Hapus permanen?', 'Delete permanently?')}
+                        danger
+                        onConfirm={() => onAction(c, 'delete')}
+                      />
                     </td>
                   </tr>
                 );
@@ -483,7 +605,12 @@ function CodesPanel({
           </table>
         </div>
       ) : (
-        <Empty>Tidak ada kode {filter === 'semua' ? '' : filter}.</Empty>
+        <Empty>
+          {tr(
+            `Tidak ada kode ${filter === 'semua' ? '' : filter}.`,
+            filter === 'semua' ? 'No codes.' : `No ${codeStatusLabel(filter)} codes.`,
+          )}
+        </Empty>
       )}
     </section>
   );
@@ -519,44 +646,58 @@ function CreatePanel({
   return (
     <section className="panel">
       <div className="panel-head">
-        <h2>Buat kode akses</h2>
-        {draft.orderId && <span className="tag accent">pesanan #{draft.orderId}</span>}
+        <h2>{tr('Buat kode akses', 'Create access code')}</h2>
+        {draft.orderId && <span className="tag accent">{tr(`pesanan #${draft.orderId}`, `order #${draft.orderId}`)}</span>}
       </div>
       <form className="stack" style={{ gap: 8 }} onSubmit={submit}>
         <label className="field">
-          <span>Nama pembeli</span>
+          <span>{tr('Nama pembeli', "Buyer's name")}</span>
           <input id="code-name" className="input" value={draft.name} onChange={(e) => set({ name: e.target.value })} required minLength={2} maxLength={60} />
         </label>
         <label className="field">
-          <span>No. WhatsApp (opsional)</span>
+          <span>{tr('No. WhatsApp (opsional)', 'WhatsApp number (optional)')}</span>
           <input id="code-contact" className="input" value={draft.contact} onChange={(e) => set({ contact: e.target.value })} placeholder="08…" inputMode="tel" />
         </label>
         <div className="field">
-          <span>Masa aktif</span>
-          <Seg<number> value={draft.months} onChange={(m) => set({ months: m })} options={options.map((m) => ({ value: m, label: `${m} bln` }))} />
+          <span>{tr('Masa aktif', 'Duration')}</span>
+          <Seg<number>
+            value={draft.months}
+            onChange={(m) => set({ months: m })}
+            options={options.map((m) => ({ value: m, label: tr(`${m} bln`, `${m} mo`) }))}
+          />
         </div>
         <label className="field">
-          <span>Catatan (opsional)</span>
+          <span>{tr('Catatan (opsional)', 'Note (optional)')}</span>
           <input id="code-note" className="input" value={draft.note} onChange={(e) => set({ note: e.target.value })} maxLength={200} />
         </label>
         <button type="submit" className="btn primary" disabled={busy}>
-          {busy ? 'Membuat…' : `Buat kode ${draft.months} bulan (${draft.months * 30} hari)`}
+          {busy
+            ? tr('Membuat…', 'Creating…')
+            : tr(
+                `Buat kode ${draft.months} bulan (${draft.months * 30} hari)`,
+                `Create ${draft.months}-month code (${draft.months * 30} days)`,
+              )}
         </button>
       </form>
       {made && (
         <div className="made-code">
-          <div className="dim small">Kode untuk {made.name}, aktif sampai {fmtDate(made.exp)}</div>
+          <div className="dim small">
+            {tr(
+              `Kode untuk ${made.name}, aktif sampai ${fmtDate(made.exp)}`,
+              `Code for ${made.name}, active until ${fmtDate(made.exp)}`,
+            )}
+          </div>
           <div className="code-big">{made.code}</div>
           <div className="row" style={{ gap: 6 }}>
             <button type="button" className="btn sm" onClick={() => copy(made.code)}>
-              Salin kode
+              {tr('Salin kode', 'Copy code')}
             </button>
             <button type="button" className="btn sm" onClick={() => copy(codeMessage(made, maxDevices))}>
-              Salin pesan
+              {tr('Salin pesan', 'Copy message')}
             </button>
             {made.contact && (
               <a className="btn sm primary" href={waLink(made.contact, codeMessage(made, maxDevices))} target="_blank" rel="noreferrer">
-                Kirim via WhatsApp
+                {tr('Kirim via WhatsApp', 'Send via WhatsApp')}
               </a>
             )}
           </div>
@@ -587,7 +728,7 @@ function SettingsPanel({ config, save }: { config: Config; save: (patch: Partial
   return (
     <section className="panel">
       <div className="panel-head">
-        <h2>Pengaturan jual</h2>
+        <h2>{tr('Pengaturan jual', 'Sales settings')}</h2>
       </div>
       <form
         className="stack"
@@ -599,11 +740,11 @@ function SettingsPanel({ config, save }: { config: Config; save: (patch: Partial
       >
         <div className="row">
           <label className="field grow">
-            <span>Harga / bulan (Rp)</span>
+            <span>{tr('Harga / bulan (Rp)', 'Price / month (Rp)')}</span>
             <input id="cfg-price" className="input" type="number" min={0} step={1000} value={form.price} onChange={(e) => set({ price: Number(e.target.value) })} />
           </label>
           <label className="field grow">
-            <span>Harga coret (opsional)</span>
+            <span>{tr('Harga coret (opsional)', 'Strikethrough price (optional)')}</span>
             <input
               id="cfg-normal"
               className="input"
@@ -617,7 +758,7 @@ function SettingsPanel({ config, save }: { config: Config; save: (patch: Partial
           </label>
         </div>
         <label className="field">
-          <span>Promo berakhir (countdown di halaman beli)</span>
+          <span>{tr('Promo berakhir (countdown di halaman beli)', 'Promo ends (countdown on the buy page)')}</span>
           <div className="row" style={{ gap: 6 }}>
             <input
               id="cfg-promo"
@@ -628,36 +769,47 @@ function SettingsPanel({ config, save }: { config: Config; save: (patch: Partial
             />
             {form.promoEnd > 0 && (
               <button type="button" className="btn sm ghost" onClick={() => set({ promoEnd: 0 })}>
-                Tanpa promo
+                {tr('Tanpa promo', 'No promo')}
               </button>
             )}
           </div>
         </label>
         <label className="field">
-          <span>No. WhatsApp admin (penerima pesanan)</span>
-          <input id="cfg-wa" className="input" value={form.whatsapp} onChange={(e) => set({ whatsapp: e.target.value })} placeholder="08… atau 628…" inputMode="tel" />
+          <span>{tr('No. WhatsApp admin (penerima pesanan)', 'Admin WhatsApp number (receives orders)')}</span>
+          <input
+            id="cfg-wa"
+            className="input"
+            value={form.whatsapp}
+            onChange={(e) => set({ whatsapp: e.target.value })}
+            placeholder={tr('08… atau 628…', '08… or 628…')}
+            inputMode="tel"
+          />
         </label>
         <label className="field">
-          <span>Info pembayaran (rekening / QRIS / e-wallet)</span>
+          <span>{tr('Info pembayaran (rekening / QRIS / e-wallet)', 'Payment info (bank account / QRIS / e-wallet)')}</span>
           <textarea
             id="cfg-pay"
             className="input"
             value={form.paymentInfo}
             onChange={(e) => set({ paymentInfo: e.target.value })}
-            placeholder={'BCA 1234567890 a.n. Nama Anda\nQRIS: kirim di chat WhatsApp'}
+            placeholder={tr(
+              'BCA 1234567890 a.n. Nama Anda\nQRIS: kirim di chat WhatsApp',
+              'BCA 1234567890 (account holder name)\nQRIS: sent in the WhatsApp chat',
+            )}
           />
         </label>
         <div className="row">
           <label className="field">
-            <span>Maks. perangkat / kode</span>
+            <span>{tr('Maks. perangkat / kode', 'Max. devices / code')}</span>
             <input id="cfg-devices" className="input" type="number" min={1} max={10} style={{ width: 90 }} value={form.maxDevices} onChange={(e) => set({ maxDevices: Number(e.target.value) })} />
           </label>
           <div className="field">
-            <span>Paket di halaman beli</span>
+            <span>{tr('Paket di halaman beli', 'Packages on the buy page')}</span>
             <div className="row" style={{ gap: 8 }}>
               {[1, 3, 6, 12].map((m) => (
                 <label key={m} className="check small">
-                  <input type="checkbox" checked={form.packages.includes(m)} onChange={() => togglePackage(m)} /> {m} bln
+                  <input type="checkbox" checked={form.packages.includes(m)} onChange={() => togglePackage(m)} />{' '}
+                  {tr(`${m} bln`, `${m} mo`)}
                 </label>
               ))}
             </div>
@@ -665,9 +817,13 @@ function SettingsPanel({ config, save }: { config: Config; save: (patch: Partial
         </div>
         <div className="row">
           <button type="submit" className="btn primary">
-            Simpan
+            {tr('Simpan', 'Save')}
           </button>
-          {saved && <span className="small pos">Tersimpan. Halaman beli sudah memakai pengaturan baru.</span>}
+          {saved && (
+            <span className="small pos">
+              {tr('Tersimpan. Halaman beli sudah memakai pengaturan baru.', 'Saved. The buy page now uses the new settings.')}
+            </span>
+          )}
         </div>
       </form>
     </section>

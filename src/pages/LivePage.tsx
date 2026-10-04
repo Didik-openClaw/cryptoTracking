@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from 'react';
 import { Addr } from '../components/Addr';
 import { Empty, LongShortBar, SideBadge, StatCard, UsdSelect } from '../components/ui';
-import { fmtAgo, fmtPx, fmtSize, fmtTime, fmtUsd, pnlClass } from '../lib/format';
+import { fmtAgo, fmtCount, fmtPx, fmtSize, fmtTime, fmtUsd, pnlClass } from '../lib/format';
+import { plural, tr } from '../lib/i18n';
 import { live, LIVE_KEEP_FLOOR_USD, type BigTrade } from '../lib/live';
 import { useObservable } from '../lib/observable';
 import { scanner } from '../lib/scanner';
@@ -9,9 +10,9 @@ import { settings } from '../lib/settings';
 import { socket } from '../lib/ws';
 
 const WINDOWS = [
-  { ms: 5 * 60_000, label: '5 menit' },
-  { ms: 15 * 60_000, label: '15 menit' },
-  { ms: 60 * 60_000, label: '1 jam' },
+  { ms: 5 * 60_000, label: () => tr('5 menit', '5 min') },
+  { ms: 15 * 60_000, label: () => tr('15 menit', '15 min') },
+  { ms: 60 * 60_000, label: () => tr('1 jam', '1 hour') },
 ];
 const ROWS = 300;
 
@@ -69,15 +70,24 @@ export function LivePage() {
       <div className="page-head">
         <div>
           <h1>
-            <span className="fn">BLKT</span>Trade Besar Live
+            <span className="fn">BLKT</span>
+            {tr('Trade Besar Live', 'Live Block Trades')}
           </h1>
           <p>
-            Market order ≥ {fmtUsd(s.liveMinUsd, { decimals: 0 })} di {live.coins.length} perp teratas, real-time. Fill dari
-            satu order digabung. Trader besar otomatis dipindai posisinya.
+            {tr(
+              <>
+                Market order ≥ {fmtUsd(s.liveMinUsd, { decimals: 0 })} di {live.coins.length} perp teratas, real-time. Fill dari
+                satu order digabung. Trader besar otomatis dipindai posisinya.
+              </>,
+              <>
+                Market orders ≥ {fmtUsd(s.liveMinUsd, { decimals: 0 })} on the top {live.coins.length} perps, real-time. Fills
+                from one order are merged. Large traders&apos; positions are scanned automatically.
+              </>,
+            )}
           </p>
         </div>
         <div className="row">
-          <span className="muted small">Trade minimal</span>
+          <span className="muted small">{tr('Trade minimal', 'Min. trade')}</span>
           <UsdSelect
             value={s.liveMinUsd}
             onChange={(v) => settings.update({ liveMinUsd: v })}
@@ -88,7 +98,9 @@ export function LivePage() {
 
       {!wsOk && (
         <div className="notice">
-          {socket.status === 'connecting' ? 'Menghubungkan ke websocket Hyperliquid…' : 'Websocket terputus, mencoba menyambung ulang…'}
+          {socket.status === 'connecting'
+            ? tr('Menghubungkan ke websocket Hyperliquid…', 'Connecting to Hyperliquid websocket…')
+            : tr('Websocket terputus, mencoba menyambung ulang…', 'Websocket disconnected, reconnecting…')}
         </div>
       )}
 
@@ -96,7 +108,7 @@ export function LivePage() {
         {windows.map((w) => (
           <StatCard
             key={w.ms}
-            label={`Arus trade besar ${w.label}`}
+            label={tr(`Arus trade besar ${w.label()}`, `Block trade flow ${w.label()}`)}
             value={
               <span className={pnlClass(w.buy - w.sell)}>
                 {fmtUsd(w.buy - w.sell, { sign: true })}
@@ -106,16 +118,20 @@ export function LivePage() {
               <>
                 <LongShortBar long={w.buy} short={w.sell} />
                 <div style={{ marginTop: 6 }}>
-                  <span className="pos">Beli {fmtUsd(w.buy)}</span> · <span className="neg">Jual {fmtUsd(w.sell)}</span> · {w.n} trade
+                  <span className="pos">{tr('Beli', 'Buy')} {fmtUsd(w.buy)}</span> ·{' '}
+                  <span className="neg">{tr('Jual', 'Sell')} {fmtUsd(w.sell)}</span> · {tr(`${w.n} trade`, plural(w.n, 'trade'))}
                 </div>
               </>
             }
           />
         ))}
         <StatCard
-          label="Aliran data"
-          value={live.fillsSeen.toLocaleString('id-ID')}
-          sub={`fill diterima · ${live.ordersSeen.toLocaleString('id-ID')} order · mulai ${fmtAgo(live.startedAt, now)}`}
+          label={tr('Aliran data', 'Data stream')}
+          value={fmtCount(live.fillsSeen)}
+          sub={tr(
+            `fill diterima · ${fmtCount(live.ordersSeen)} order · mulai ${fmtAgo(live.startedAt, now)}`,
+            `fills received · ${fmtCount(live.ordersSeen)} orders · started ${fmtAgo(live.startedAt, now)}`,
+          )}
         />
       </div>
 
@@ -123,11 +139,11 @@ export function LivePage() {
         <section className="panel">
           <div className="panel-head">
             <h2>
-              Feed {paused && <span className="tag warn">dijeda</span>}
+              Feed {paused && <span className="tag warn">{tr('dijeda', 'paused')}</span>}
             </h2>
             <div className="row">
               <select className="input" value={coin} onChange={(e) => setCoin(e.target.value)}>
-                <option value="all">Semua coin</option>
+                <option value="all">{tr('Semua coin', 'All coins')}</option>
                 {coins.map((c) => (
                   <option key={c} value={c}>
                     {c}
@@ -136,13 +152,13 @@ export function LivePage() {
               </select>
               <label className="check small">
                 <input type="checkbox" checked={s.liveSound} onChange={(e) => settings.update({ liveSound: e.target.checked })} />
-                Bunyi
+                {tr('Bunyi', 'Sound')}
               </label>
               <button type="button" className="btn sm" onClick={() => setPaused(!paused)}>
-                {paused ? 'Lanjutkan' : 'Jeda tampilan'}
+                {paused ? tr('Lanjutkan', 'Resume') : tr('Jeda tampilan', 'Pause view')}
               </button>
               <button type="button" className="btn sm ghost" onClick={() => live.clear()}>
-                Bersihkan
+                {tr('Bersihkan', 'Clear')}
               </button>
             </div>
           </div>
@@ -151,16 +167,16 @@ export function LivePage() {
               <table>
                 <thead>
                   <tr>
-                    <th>Waktu</th>
+                    <th>{tr('Waktu', 'Time')}</th>
                     <th>Coin</th>
-                    <th>Arah</th>
-                    <th className="num">Nilai</th>
+                    <th>{tr('Arah', 'Side')}</th>
+                    <th className="num">{tr('Nilai', 'Value')}</th>
                     <th className="num">Size</th>
-                    <th className="num">Harga rata²</th>
-                    <th className="num">Fill</th>
+                    <th className="num">{tr('Harga rata²', 'Avg. Price')}</th>
+                    <th className="num">{tr('Fill', 'Fills')}</th>
                     <th>Trader (taker)</th>
-                    <th>Posisi trader saat ini</th>
-                    <th>Lawan terbesar (maker)</th>
+                    <th>{tr('Posisi trader saat ini', 'Trader position now')}</th>
+                    <th>{tr('Lawan terbesar (maker)', 'Top counterparty (maker)')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -202,17 +218,22 @@ export function LivePage() {
             </div>
           ) : (
             <Empty>
-              <b>Menunggu trade ≥ {fmtUsd(s.liveMinUsd)}…</b>
+              <b>{tr(`Menunggu trade ≥ ${fmtUsd(s.liveMinUsd)}…`, `Waiting for trades ≥ ${fmtUsd(s.liveMinUsd)}…`)}</b>
               <br />
-              Trade besar akan muncul otomatis. Turunkan batas minimal (paling rendah {fmtUsd(LIVE_KEEP_FLOOR_USD)}) untuk melihat
-              lebih banyak.
+              {tr(
+                <>
+                  Trade besar akan muncul otomatis. Turunkan batas minimal (paling rendah {fmtUsd(LIVE_KEEP_FLOOR_USD)}) untuk
+                  melihat lebih banyak.
+                </>,
+                <>Block trades appear automatically. Lower the minimum (down to {fmtUsd(LIVE_KEEP_FLOOR_USD)}) to see more.</>,
+              )}
             </Empty>
           )}
         </section>
 
         <section className="panel">
           <div className="panel-head">
-            <h2>Trader paling agresif (1 jam)</h2>
+            <h2>{tr('Trader paling agresif (1 jam)', 'Most aggressive traders (1h)')}</h2>
           </div>
           {topTakers.length ? (
             <div className="table-wrap compact">
@@ -220,8 +241,8 @@ export function LivePage() {
                 <thead>
                   <tr>
                     <th>Trader</th>
-                    <th className="num">Beli</th>
-                    <th className="num">Jual</th>
+                    <th className="num">{tr('Beli', 'Buy')}</th>
+                    <th className="num">{tr('Jual', 'Sell')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -229,7 +250,7 @@ export function LivePage() {
                     <tr key={x.address}>
                       <td>
                         <Addr address={x.address} />
-                        <div className="dim small">{x.n} trade</div>
+                        <div className="dim small">{tr(`${x.n} trade`, plural(x.n, 'trade'))}</div>
                       </td>
                       <td className="num pos">{x.buy ? fmtUsd(x.buy) : '–'}</td>
                       <td className="num neg">{x.sell ? fmtUsd(x.sell) : '–'}</td>
@@ -239,7 +260,7 @@ export function LivePage() {
               </table>
             </div>
           ) : (
-            <Empty>Belum ada data.</Empty>
+            <Empty>{tr('Belum ada data.', 'No data yet.')}</Empty>
           )}
         </section>
       </div>
@@ -252,9 +273,11 @@ function CurrentPosition({ address, coin }: { address: string; coin: string }) {
   const p = w?.positions.find((x) => x.coin === coin);
   if (!w) {
     const scanned = scanner.lastScannedAt(address);
-    return <span className="dim small">{scanned ? 'tidak ada posisi besar' : 'memindai…'}</span>;
+    return (
+      <span className="dim small">{scanned ? tr('tidak ada posisi besar', 'no large position') : tr('memindai…', 'scanning…')}</span>
+    );
   }
-  if (!p) return <span className="dim small">tidak ada posisi {coin}</span>;
+  if (!p) return <span className="dim small">{tr(`tidak ada posisi ${coin}`, `no ${coin} position`)}</span>;
   return (
     <span className="nowrap">
       <SideBadge side={p.side} /> <b>{fmtUsd(p.positionValue)}</b> <span className="dim small">@ {fmtPx(p.entryPx)}</span>

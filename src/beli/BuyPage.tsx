@@ -1,25 +1,89 @@
 import { useEffect, useMemo, useState } from 'react';
+import { LangButton } from '../components/LangButton';
 import { Seg, Spinner } from '../components/ui';
 import { api, fmtCountdown, fmtDate, fmtRupiah, remaining, useNow, waLink, type Me, type PublicConfig } from '../lib/accessClient';
+import { tr } from '../lib/i18n';
 import { useObservable } from '../lib/observable';
-import { THEME_LABEL, theme } from '../lib/theme';
+import { themeLabel, theme } from '../lib/theme';
 
-const REASON_TEXT: Record<string, string> = {
-  expired: 'Masa akses Anda sudah habis. Perpanjang untuk membuka terminal lagi.',
-  revoked: 'Kode akses Anda dinonaktifkan. Hubungi admin lewat WhatsApp.',
-  device: 'Perangkat ini dikeluarkan dari kode akses Anda. Masukkan kode lagi untuk mendaftarkannya.',
-  invalid: 'Sesi tidak dikenali. Masukkan kode akses Anda.',
-  session: 'Sesi berakhir. Masukkan kode akses Anda lagi.',
-};
+const reasonText = (): Record<string, string> => ({
+  expired: tr(
+    'Masa akses Anda sudah habis. Perpanjang untuk membuka terminal lagi.',
+    'Your access has expired. Renew to open the terminal again.',
+  ),
+  revoked: tr(
+    'Kode akses Anda dinonaktifkan. Hubungi admin lewat WhatsApp.',
+    'Your access code has been deactivated. Contact the admin on WhatsApp.',
+  ),
+  device: tr(
+    'Perangkat ini dikeluarkan dari kode akses Anda. Masukkan kode lagi untuk mendaftarkannya.',
+    'This device was removed from your access code. Enter the code again to register it.',
+  ),
+  invalid: tr('Sesi tidak dikenali. Masukkan kode akses Anda.', 'Session not recognized. Please enter your access code.'),
+  session: tr('Sesi berakhir. Masukkan kode akses Anda lagi.', 'Your session has ended. Please enter your access code again.'),
+});
 
-const FEATURES: [string, string, string][] = [
-  ['WHAL', 'Scanner whale', 'Semua posisi perp Hyperliquid ≥ $5 juta: siapa long, siapa short, entry, harga likuidasi, waktu buka.'],
-  ['LSHT', 'Long vs Short per coin', 'Total posisi whale tiap coin, porsi dari open interest, dan peta likuidasi.'],
-  ['TOPW', 'Top 20 whale profit', 'Win rate, profit factor, expectancy, dan bias long/short trader paling cuan.'],
-  ['BLKT', 'Trade besar live', 'Market order jutaan dollar real-time, lengkap dengan posisi trader saat ini.'],
-  ['WTCH', 'Watchlist & alert', 'Notifikasi saat whale favorit buka, tutup, tambah posisi, atau mendekati likuidasi.'],
-  ['NEWS', 'Berita & wire', 'Headline kripto terbaru dan kabar pasar dari data Hyperliquid di samping chart.'],
+const features = (): [string, string, string][] => [
+  [
+    'WHAL',
+    tr('Scanner whale', 'Whale scanner'),
+    tr(
+      'Semua posisi perp Hyperliquid ≥ $5 juta: siapa long, siapa short, entry, harga likuidasi, waktu buka.',
+      'Every Hyperliquid perp position ≥ $5M: who is long, who is short, entry, liquidation price, time opened.',
+    ),
+  ],
+  [
+    'LSHT',
+    'Long vs Short per coin',
+    tr(
+      'Total posisi whale tiap coin, porsi dari open interest, dan peta likuidasi.',
+      'Total whale positions per coin, their share of open interest, and a liquidation map.',
+    ),
+  ],
+  [
+    'TOPW',
+    tr('Top 20 whale profit', 'Top 20 most profitable whales'),
+    tr(
+      'Win rate, profit factor, expectancy, dan bias long/short trader paling cuan.',
+      'Win rate, profit factor, expectancy and long/short bias of the most profitable traders.',
+    ),
+  ],
+  [
+    'CHRT',
+    tr('Chart + 17 indikator', 'Charts + 17 indicators'),
+    tr(
+      'MA/EMA, Bollinger, VWAP, Supertrend, Ichimoku, RSI, MACD, Stoch RSI, ADX dan lainnya; periode & warna bisa diatur, level entry dan likuidasi whale langsung di chart.',
+      'MA/EMA, Bollinger, VWAP, Supertrend, Ichimoku, RSI, MACD, Stoch RSI, ADX and more with adjustable settings, plus whale entry and liquidation levels on the chart.',
+    ),
+  ],
+  [
+    'BLKT',
+    tr('Trade besar live', 'Live block trades'),
+    tr(
+      'Market order jutaan dollar real-time, lengkap dengan posisi trader saat ini.',
+      "Million-dollar market orders in real time, with each trader's current position.",
+    ),
+  ],
+  [
+    'WTCH',
+    tr('Watchlist & alert', 'Watchlist & alerts'),
+    tr(
+      'Notifikasi saat whale favorit buka, tutup, tambah posisi, atau mendekati likuidasi.',
+      'Get notified when your favorite whales open, close or add to a position, or get close to liquidation.',
+    ),
+  ],
+  [
+    'NEWS',
+    tr('Berita & wire', 'News & wire'),
+    tr(
+      'Headline kripto terbaru dan kabar pasar dari data Hyperliquid di samping chart.',
+      'Latest crypto headlines and market news from Hyperliquid data, right beside the chart.',
+    ),
+  ],
 ];
+
+/** "3 bulan" / "3 months". */
+const monthsText = (m: number) => tr(`${m} bulan`, m === 1 ? '1 month' : `${m} months`);
 
 export function BuyPage() {
   useObservable(theme);
@@ -27,6 +91,7 @@ export function BuyPage() {
   const [configError, setConfigError] = useState('');
   const [me, setMe] = useState<Me | null | undefined>(undefined);
   const reason = new URLSearchParams(location.search).get('alasan') ?? '';
+  const reasonMsg = reasonText()[reason];
 
   useEffect(() => {
     api<PublicConfig>('/api/config').then(setConfig, (e: Error) => setConfigError(e.message));
@@ -43,34 +108,41 @@ export function BuyPage() {
             <span className="logo">DTY</span>Crypto Terminal
           </a>
           <span className="grow" />
-          <button type="button" className="theme-btn" onClick={() => theme.cycle()} title="Ganti tema">
+          <button type="button" className="theme-btn" onClick={() => theme.cycle()} title={tr('Ganti tema', 'Change theme')}>
             <span className="theme-icon" aria-hidden="true" />
-            {THEME_LABEL[theme.pref]}
+            {themeLabel(theme.pref)}
           </button>
+          <LangButton />
         </div>
       </header>
       <main className="buy">
         <div className="page-head">
           <div>
             <h1>
-              <span className="fn">BELI</span>Akses DTY Crypto Terminal
+              <span className="fn">{tr('BELI', 'BUY')}</span>
+              {tr('Akses DTY Crypto Terminal', 'Get DTY Crypto Terminal access')}
             </h1>
-            <p>Lacak trader Hyperliquid dengan posisi jutaan dollar secara real-time: siapa long, siapa short, kapan masuk, dan di mana likuidasinya.</p>
+            <p>
+              {tr(
+                'Lacak trader Hyperliquid dengan posisi jutaan dollar secara real-time: siapa long, siapa short, kapan masuk, dan di mana likuidasinya.',
+                'Track Hyperliquid traders with million-dollar positions in real time: who is long, who is short, when they got in and where they get liquidated.',
+              )}
+            </p>
           </div>
         </div>
-        {reason && REASON_TEXT[reason] && <div className="notice" style={{ marginBottom: 10 }}>{REASON_TEXT[reason]}</div>}
+        {reason && reasonMsg && <div className="notice" style={{ marginBottom: 10 }}>{reasonMsg}</div>}
         {configError && <div className="notice error" style={{ marginBottom: 10 }}>{configError}</div>}
 
         <div className="grid-main">
           <div className="stack">
-            {config ? <PricePanel config={config} offset={offset} /> : !configError && <section className="panel"><div className="empty"><Spinner /> Memuat harga…</div></section>}
+            {config ? <PricePanel config={config} offset={offset} /> : !configError && <section className="panel"><div className="empty"><Spinner /> {tr('Memuat harga…', 'Loading price…')}</div></section>}
             {config && <HowToPay config={config} />}
             <section className="panel">
               <div className="panel-head">
-                <h2>Yang Anda dapat</h2>
+                <h2>{tr('Yang Anda dapat', 'What you get')}</h2>
               </div>
               <ul className="feature-list">
-                {FEATURES.map(([code, title, body]) => (
+                {features().map(([code, title, body]) => (
                   <li key={code}>
                     <span className="fn">{code}</span>
                     <div>
@@ -96,13 +168,16 @@ export function BuyPage() {
             )}
             <section className="panel">
               <div className="panel-head">
-                <h2>Coba dulu, gratis</h2>
+                <h2>{tr('Coba dulu, gratis', 'Try it first, free')}</h2>
               </div>
               <p className="small muted" style={{ marginTop: 0 }}>
-                Jelajahi semua fitur dengan data pasar simulasi sebelum membeli.
+                {tr(
+                  'Jelajahi semua fitur dengan data pasar simulasi sebelum membeli.',
+                  'Explore every feature with simulated market data before you buy.',
+                )}
               </p>
               <a className="btn" href="/demo/">
-                Buka demo
+                {tr('Buka demo', 'Open demo')}
               </a>
             </section>
           </div>
@@ -112,7 +187,9 @@ export function BuyPage() {
         <span>
           <b>DTY</b>Crypto Terminal
         </span>
-        <span className="sp dim">Data publik Hyperliquid · bukan saran finansial</span>
+        <span className="sp dim">
+          {tr('Data publik Hyperliquid · bukan saran finansial', 'Public Hyperliquid data · not financial advice')}
+        </span>
       </footer>
     </>
   );
@@ -122,14 +199,14 @@ function PromoCountdown({ end, now }: { end: number; now: number }) {
   const r = remaining(end - now);
   if (r.done) return null;
   const cells: [number, string][] = [
-    [r.days, 'hari'],
-    [r.hours, 'jam'],
-    [r.minutes, 'menit'],
-    [r.seconds, 'detik'],
+    [r.days, tr('hari', 'days')],
+    [r.hours, tr('jam', 'hours')],
+    [r.minutes, tr('menit', 'mins')],
+    [r.seconds, tr('detik', 'secs')],
   ];
   return (
     <div className="promo">
-      <div className="promo-label">Harga promo berakhir dalam</div>
+      <div className="promo-label">{tr('Harga promo berakhir dalam', 'Promo price ends in')}</div>
       <div className="promo-cells" role="timer" aria-live="off">
         {cells.map(([v, label]) => (
           <div key={label} className="promo-cell">
@@ -138,7 +215,9 @@ function PromoCountdown({ end, now }: { end: number; now: number }) {
           </div>
         ))}
       </div>
-      <div className="dim small">Sampai {fmtDate(end)}</div>
+      <div className="dim small">
+        {tr('Sampai', 'Until')} {fmtDate(end)}
+      </div>
     </div>
   );
 }
@@ -158,22 +237,38 @@ function PricePanel({ config, offset }: { config: PublicConfig; offset: number }
   const order = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!config.whatsapp) return setError('Nomor WhatsApp admin belum diatur. Silakan coba lagi nanti.');
+    if (!config.whatsapp) {
+      return setError(
+        tr('Nomor WhatsApp admin belum diatur. Silakan coba lagi nanti.', "The admin's WhatsApp number is not set yet. Please try again later."),
+      );
+    }
     setBusy(true);
     // Open the tab inside the click so popup blockers allow it; point it at WhatsApp once the order is saved.
     const win = window.open('about:blank', '_blank');
     try {
       const res = await api<{ id: string; total: number }>('/api/order', { method: 'POST', body: JSON.stringify({ name, contact, months }) });
-      const message = [
-        'Halo admin DTY Crypto Terminal, saya mau beli akses.',
-        '',
-        `No. pesanan: #${res.id}`,
-        `Nama: ${name.trim()}`,
-        `Paket: ${months} bulan`,
-        `Total: ${fmtRupiah(res.total)}`,
-        '',
-        'Saya akan kirim bukti pembayaran di chat ini.',
-      ].join('\n');
+      const message = tr(
+        [
+          'Halo admin DTY Crypto Terminal, saya mau beli akses.',
+          '',
+          `No. pesanan: #${res.id}`,
+          `Nama: ${name.trim()}`,
+          `Paket: ${months} bulan`,
+          `Total: ${fmtRupiah(res.total)}`,
+          '',
+          'Saya akan kirim bukti pembayaran di chat ini.',
+        ],
+        [
+          'Hi DTY Crypto Terminal admin, I would like to buy access.',
+          '',
+          `Order no.: #${res.id}`,
+          `Name: ${name.trim()}`,
+          `Package: ${monthsText(months)}`,
+          `Total: ${fmtRupiah(res.total)}`,
+          '',
+          "I'll send proof of payment in this chat.",
+        ],
+      ).join('\n');
       const url = waLink(config.whatsapp, message);
       setPlaced({ id: res.id, url });
       if (win) {
@@ -191,50 +286,76 @@ function PricePanel({ config, offset }: { config: PublicConfig; offset: number }
   return (
     <section className="panel">
       <div className="panel-head">
-        <h2>Harga akses</h2>
-        <span className="hint">1 bulan = 30 hari</span>
+        <h2>{tr('Harga akses', 'Access price')}</h2>
+        <span className="hint">{tr('1 bulan = 30 hari', '1 month = 30 days')}</span>
       </div>
       <div className="price-row">
         {showNormal && <s className="dim">{fmtRupiah(config.normalPrice)}</s>}
         <span className="price">{fmtRupiah(config.price)}</span>
-        <span className="muted">/ bulan</span>
-        {showNormal && <span className="tag accent">hemat {fmtRupiah(config.normalPrice - config.price)}</span>}
+        <span className="muted">{tr('/ bulan', '/ month')}</span>
+        {showNormal && (
+          <span className="tag accent">
+            {tr('hemat', 'save')} {fmtRupiah(config.normalPrice - config.price)}
+          </span>
+        )}
       </div>
       {config.promoEnd > 0 && <PromoCountdown end={config.promoEnd} now={now} />}
 
       <form className="stack" style={{ gap: 10, marginTop: 12 }} onSubmit={order}>
         <div className="field">
-          <span>Paket</span>
-          <Seg<number> value={months} onChange={setMonths} options={config.packages.map((m) => ({ value: m, label: `${m} bulan` }))} />
+          <span>{tr('Paket', 'Package')}</span>
+          <Seg<number> value={months} onChange={setMonths} options={config.packages.map((m) => ({ value: m, label: monthsText(m) }))} />
         </div>
         <div className="total-row">
           <span className="muted">Total</span>
           <b className="price-total">{fmtRupiah(total)}</b>
-          <span className="dim small">akses {months * 30} hari</span>
+          <span className="dim small">{tr(`akses ${months * 30} hari`, `${months * 30} days of access`)}</span>
         </div>
         <div className="row">
           <label className="field grow" style={{ minWidth: 180 }}>
-            <span>Nama</span>
-            <input id="buy-name" className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nama Anda" autoComplete="name" required minLength={2} maxLength={60} />
+            <span>{tr('Nama', 'Name')}</span>
+            <input
+              id="buy-name"
+              className="input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={tr('Nama Anda', 'Your name')}
+              autoComplete="name"
+              required
+              minLength={2}
+              maxLength={60}
+            />
           </label>
           <label className="field grow" style={{ minWidth: 180 }}>
-            <span>No. WhatsApp</span>
+            <span>{tr('No. WhatsApp', 'WhatsApp number')}</span>
             <input id="buy-contact" className="input" value={contact} onChange={(e) => setContact(e.target.value)} placeholder="08…" inputMode="tel" autoComplete="tel" required />
           </label>
         </div>
         {error && <div className="small danger">{error}</div>}
         <div className="row">
           <button type="submit" className="btn primary" disabled={busy}>
-            {busy ? 'Mencatat pesanan…' : 'Pesan via WhatsApp'}
+            {busy ? tr('Mencatat pesanan…', 'Placing order…') : tr('Pesan via WhatsApp', 'Order via WhatsApp')}
           </button>
-          <span className="dim small">Pesanan tercatat, lalu WhatsApp admin terbuka dengan pesan otomatis.</span>
+          <span className="dim small">
+            {tr(
+              'Pesanan tercatat, lalu WhatsApp admin terbuka dengan pesan otomatis.',
+              'Your order is saved, then a WhatsApp chat with the admin opens with a ready-made message.',
+            )}
+          </span>
         </div>
       </form>
       {placed && (
         <div className="notice info" style={{ marginTop: 10 }}>
-          Pesanan <b>#{placed.id}</b> tercatat. Lanjutkan di WhatsApp dan kirim bukti pembayaran. Kalau WhatsApp tidak terbuka,{' '}
+          {tr(
+            <>
+              Pesanan <b>#{placed.id}</b> tercatat. Lanjutkan di WhatsApp dan kirim bukti pembayaran. Kalau WhatsApp tidak terbuka,
+            </>,
+            <>
+              Order <b>#{placed.id}</b> saved. Continue in WhatsApp and send your proof of payment. If WhatsApp did not open,
+            </>,
+          )}{' '}
           <a href={placed.url} target="_blank" rel="noreferrer">
-            klik di sini
+            {tr('klik di sini', 'click here')}
           </a>
           .
         </div>
@@ -247,26 +368,57 @@ function HowToPay({ config }: { config: PublicConfig }) {
   return (
     <section className="panel">
       <div className="panel-head">
-        <h2>Cara beli</h2>
+        <h2>{tr('Cara beli', 'How to buy')}</h2>
       </div>
       <ol className="steps">
         <li>
-          <b>Pesan</b> lewat form di atas. WhatsApp admin terbuka dengan nomor pesanan Anda.
-        </li>
-        <li>
-          <b>Bayar</b> sesuai total ke:
-          {config.paymentInfo ? (
-            <pre className="pay-info">{config.paymentInfo}</pre>
-          ) : (
-            <div className="muted small">Info rekening / QRIS dikirim admin lewat WhatsApp.</div>
+          {tr(
+            <>
+              <b>Pesan</b> lewat form di atas. WhatsApp admin terbuka dengan nomor pesanan Anda.
+            </>,
+            <>
+              <b>Order</b> with the form above. A WhatsApp chat with the admin opens with your order number.
+            </>,
           )}
         </li>
         <li>
-          <b>Kirim bukti bayar</b> di chat WhatsApp tersebut.
+          {tr(
+            <>
+              <b>Bayar</b> sesuai total ke:
+            </>,
+            <>
+              <b>Pay</b> the total to:
+            </>,
+          )}
+          {config.paymentInfo ? (
+            <pre className="pay-info">{config.paymentInfo}</pre>
+          ) : (
+            <div className="muted small">
+              {tr('Info rekening / QRIS dikirim admin lewat WhatsApp.', 'The admin sends bank account / QRIS details on WhatsApp.')}
+            </div>
+          )}
         </li>
         <li>
-          <b>Terima kode akses</b> dari admin, lalu masukkan di kolom <i>Aktifkan kode akses</i>. Terminal langsung terbuka. Satu kode bisa
-          dipakai di {config.maxDevices} perangkat.
+          {tr(
+            <>
+              <b>Kirim bukti bayar</b> di chat WhatsApp tersebut.
+            </>,
+            <>
+              <b>Send proof of payment</b> in that WhatsApp chat.
+            </>,
+          )}
+        </li>
+        <li>
+          {tr(
+            <>
+              <b>Terima kode akses</b> dari admin, lalu masukkan di kolom <i>Aktifkan kode akses</i>. Terminal langsung terbuka. Satu
+              kode bisa dipakai di {config.maxDevices} perangkat.
+            </>,
+            <>
+              <b>Get your access code</b> from the admin and enter it under <i>Activate access code</i>. The terminal opens right
+              away. One code works on up to {config.maxDevices} devices.
+            </>,
+          )}
         </li>
       </ol>
     </section>
@@ -297,11 +449,18 @@ function ActivatePanel() {
   return (
     <section className="panel">
       <div className="panel-head">
-        <h2>Aktifkan kode akses</h2>
+        <h2>{tr('Aktifkan kode akses', 'Activate access code')}</h2>
       </div>
       {done ? (
         <div className="notice info">
-          Selamat datang, <b>{done.name}</b>. Akses aktif sampai {fmtDate(done.exp)}. Membuka terminal…
+          {tr(
+            <>
+              Selamat datang, <b>{done.name}</b>. Akses aktif sampai {fmtDate(done.exp)}. Membuka terminal…
+            </>,
+            <>
+              Welcome, <b>{done.name}</b>. Access active until {fmtDate(done.exp)}. Opening the terminal…
+            </>,
+          )}
         </div>
       ) : (
         <form className="stack" style={{ gap: 8 }} onSubmit={activate}>
@@ -317,7 +476,7 @@ function ActivatePanel() {
           />
           {error && <div className="small danger">{error}</div>}
           <button type="submit" className="btn primary" disabled={busy}>
-            {busy ? 'Memeriksa…' : 'Aktifkan'}
+            {busy ? tr('Memeriksa…', 'Checking…') : tr('Aktifkan', 'Activate')}
           </button>
         </form>
       )}
@@ -335,7 +494,16 @@ function AccountPanel({ me, config, offset, onLogout }: { me: Me; config: Public
       config?.whatsapp
         ? waLink(
             config.whatsapp,
-            ['Halo admin DTY Crypto Terminal, saya mau perpanjang akses.', '', `Nama: ${me.name}`, `Kode: ${me.code}`, 'Perpanjang: 1 bulan'].join('\n'),
+            tr(
+              [
+                'Halo admin DTY Crypto Terminal, saya mau perpanjang akses.',
+                '',
+                `Nama: ${me.name}`,
+                `Kode: ${me.code}`,
+                'Perpanjang: 1 bulan',
+              ],
+              ['Hi DTY Crypto Terminal admin, I would like to renew my access.', '', `Name: ${me.name}`, `Code: ${me.code}`, 'Renew: 1 month'],
+            ).join('\n'),
           )
         : '',
     [config?.whatsapp, me.name, me.code],
@@ -350,32 +518,34 @@ function AccountPanel({ me, config, offset, onLogout }: { me: Me; config: Public
   return (
     <section className="panel">
       <div className="panel-head">
-        <h2>Status akses</h2>
-        <span className="tag accent">aktif</span>
+        <h2>{tr('Status akses', 'Access status')}</h2>
+        <span className="tag accent">{tr('aktif', 'active')}</span>
       </div>
-      <div className="small muted">Halo, {me.name}</div>
+      <div className="small muted">
+        {tr('Halo', 'Hi')}, {me.name}
+      </div>
       <div className={`account-left ${tone}`}>{fmtCountdown(left)}</div>
       <dl className="kv">
-        <dt>Berakhir</dt>
+        <dt>{tr('Berakhir', 'Expires')}</dt>
         <dd>{fmtDate(me.exp)}</dd>
-        <dt>Kode</dt>
+        <dt>{tr('Kode', 'Code')}</dt>
         <dd className="mono">{me.code}</dd>
-        <dt>Perangkat</dt>
+        <dt>{tr('Perangkat', 'Devices')}</dt>
         <dd>
           {me.devicesUsed} / {me.maxDevices}
         </dd>
       </dl>
       <div className="stack" style={{ gap: 6, marginTop: 12 }}>
         <a className="btn primary" href="/">
-          Buka terminal
+          {tr('Buka terminal', 'Open terminal')}
         </a>
         {renew && (
           <a className="btn" href={renew} target="_blank" rel="noreferrer">
-            Perpanjang via WhatsApp
+            {tr('Perpanjang via WhatsApp', 'Renew via WhatsApp')}
           </a>
         )}
         <button type="button" className="btn ghost" onClick={() => void logout()} disabled={busy}>
-          Keluar dari perangkat ini
+          {tr('Keluar dari perangkat ini', 'Log out of this device')}
         </button>
       </div>
     </section>

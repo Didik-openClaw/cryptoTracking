@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { LangRoot } from '../lib/i18n';
 import { theme } from '../lib/theme';
 import { AdminPage } from './AdminPage';
 import '../styles.css';
@@ -8,6 +9,8 @@ theme.start();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AdminPage />
+    <LangRoot>
+      <AdminPage />
+    </LangRoot>
   </StrictMode>,
 );
