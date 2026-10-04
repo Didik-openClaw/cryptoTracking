@@ -104,13 +104,14 @@ npm run preview  # coba hasil build
 
 ### GitHub Pages (otomatis)
 
-Workflow `.github/workflows/deploy.yml` sudah tersedia.
+Workflow `.github/workflows/deploy.yml` menjalankan test dan build di setiap push, lalu men-deploy dari **branch default**
+repo (sekarang `claude/epic-ramanujan-osgblm`; nanti `main` kalau branch default diganti).
 
-1. Merge ke branch `main`.
-2. Di GitHub buka **Settings → Pages**, lalu pada **Source** pilih **GitHub Actions**.
-3. Website akan tersedia di `https://<username>.github.io/<nama-repo>/`.
+1. Satu kali saja: di GitHub buka **Settings → Pages**, lalu pada **Source** pilih **GitHub Actions**.
+2. Jalankan ulang workflow (tab **Actions → Build & deploy ke GitHub Pages → Run workflow**) atau push commit baru.
+3. Website tersedia di `https://<username>.github.io/<nama-repo>/`.
 
-Workflow berjalan setiap ada push ke `main`, dan juga setiap 3 jam untuk memperbarui snapshot leaderboard.
+Workflow juga berjalan sendiri setiap 3 jam untuk memperbarui snapshot leaderboard dan berita.
 
 ### Vercel / Netlify / Cloudflare Pages
 

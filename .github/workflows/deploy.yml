@@ -1,9 +1,9 @@
-name: Deploy ke GitHub Pages
+name: Build & deploy ke GitHub Pages
 
 on:
+  # Every push runs the tests and build; only the default branch deploys.
   push:
-    branches: [main]
-  # Rebuild periodically so the bundled leaderboard snapshot stays fresh.
+  # Rebuild periodically so the bundled leaderboard and news snapshots stay fresh.
   schedule:
     - cron: '17 */3 * * *'
   workflow_dispatch:
@@ -14,7 +14,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -35,6 +35,8 @@ jobs:
 
   deploy:
     needs: build
+    # Scheduled runs only ever run on the default branch.
+    if: github.event_name != 'push' || github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-latest
     environment:
       name: github-pages
