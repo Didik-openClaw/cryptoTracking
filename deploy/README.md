@@ -7,18 +7,18 @@ tersimpan di `/home/dty/app/.data/access.json`.
 Paket hosting biasa (Web Hosting Premium/Business) tidak cocok untuk panduan ini karena tidak bisa menjalankan server
 Node sendiri lewat SSH. Pakai VPS (KVM 1 sudah cukup).
 
-Ganti `IP_VPS` dengan IP VPS Anda (hPanel → VPS → Overview) dan `domainkamu.com` dengan domain Anda.
+Domain: **dtycryptoterminal.com**. Ganti `IP_VPS` dengan IP VPS Anda (hPanel → VPS → Overview).
 
 ## 1. Siapkan VPS dan domain
 
 1. hPanel → **VPS → OS & Panel → Operating System** → pilih **Ubuntu 24.04** (OS polos, tanpa panel).
    Catat password root (bisa diganti di **VPS → Settings → Root password**).
-2. hPanel → **Domains → domainkamu.com → DNS / Nameservers → DNS records**:
+2. hPanel → **Domains → dtycryptoterminal.com → DNS / Nameservers → DNS records**:
    - Ubah/tambah record **A** nama `@` → `IP_VPS`.
    - Ubah/tambah record **A** nama `www` → `IP_VPS`.
    - Hapus record A, AAAA, atau CNAME lama untuk `@` dan `www` yang menunjuk ke tempat lain.
 
-   Perubahan DNS butuh 5–30 menit. Cek dengan `ping domainkamu.com`: IP yang muncul harus `IP_VPS`.
+   Perubahan DNS butuh 5–30 menit. Cek dengan `ping dtycryptoterminal.com`: IP yang muncul harus `IP_VPS`.
 
 ## 2. Masuk ke VPS
 
@@ -108,26 +108,25 @@ Status harus `active (running)` dan `curl` menampilkan `200`. Service otomatis h
 ## 9. Nginx dan domain (root)
 
 ```bash
-DOMAIN=domainkamu.com
-sed "s/example\.com/$DOMAIN/g" /home/dty/app/deploy/nginx.conf > /etc/nginx/sites-available/dty
+cp /home/dty/app/deploy/nginx.conf /etc/nginx/sites-available/dty
 ln -sf /etc/nginx/sites-available/dty /etc/nginx/sites-enabled/dty
 rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl reload nginx
 ```
 
-Sekarang `http://domainkamu.com/beli/` sudah bisa dibuka.
+Sekarang `http://dtycryptoterminal.com/beli/` sudah bisa dibuka.
 
 ## 10. HTTPS (root)
 
 ```bash
-certbot --nginx -d $DOMAIN -d www.$DOMAIN --redirect
+certbot --nginx -d dtycryptoterminal.com -d www.dtycryptoterminal.com --redirect
 ```
 
 Isi email, setujui syarat (`Y`). Sertifikat diperpanjang otomatis. Mulai sekarang buka situs dengan `https://`.
 
 ## 11. Atur penjualan
 
-Buka `https://domainkamu.com/admin/`, masuk dengan password admin, lalu isi **Pengaturan jual**: nomor WhatsApp, info
+Buka `https://dtycryptoterminal.com/admin/`, masuk dengan password admin, lalu isi **Pengaturan jual**: nomor WhatsApp, info
 rekening/QRIS, harga normal dan tanggal akhir promo (untuk countdown). Coba alurnya: buka `/beli/` di HP, pesan, buat
 kode di admin, aktifkan.
 
@@ -167,7 +166,7 @@ Aktifkan juga backup otomatis VPS di hPanel bila tersedia.
 | --- | --- |
 | `502 Bad Gateway` | Service mati: `systemctl status dty`, log: `journalctl -u dty -n 50` |
 | Log berisi `Konfigurasi belum lengkap` | Isi `/home/dty/app/.env` (langkah 7), lalu `systemctl restart dty` |
-| Domain tidak terbuka | DNS belum mengarah ke VPS (`ping domainkamu.com`) atau firewall (langkah 4) |
+| Domain tidak terbuka | DNS belum mengarah ke VPS (`ping dtycryptoterminal.com`) atau firewall (langkah 4) |
 | `certbot` gagal | DNS `@` dan `www` harus sudah mengarah ke VPS sebelum langkah 10 |
 | Data leaderboard tidak berubah | `cat /home/dty/deploy.log` |
 | `git clone` ditolak | Deploy key belum ditambahkan di GitHub (langkah 5) |
