@@ -112,7 +112,7 @@ npm run build        # build produksi ke dist/ (termasuk unduh snapshot leaderbo
 
 ## Jual akses (Rp 500.000 / bulan)
 
-Situs ini dijual per bulan dengan **kode akses**. Gembok berjalan di server (VPS atau Netlify), jadi file aplikasi tidak
+Situs ini dijual per bulan dengan **kode akses**. Gembok berjalan di server (shared hosting PHP, VPS, atau Netlify), jadi file aplikasi tidak
 dikirim ke browser yang belum punya kode valid.
 
 | Alamat | Untuk | Isi |
@@ -131,6 +131,12 @@ Aturan akses:
 - 1 bulan = 30 hari. Saat kode habis, terminal mengarahkan pembeli ke halaman perpanjang.
 - Satu kode bisa dipakai di 2 perangkat (bisa diubah di admin). "Keluar dari perangkat ini" atau **Reset** di admin membebaskan slot.
 - Kode yang dicabut berhenti bekerja saat terminal dibuka/dimuat ulang, paling lambat 24 jam.
+
+### Deploy di Hostinger Web Hosting (shared hosting)
+
+Panduan langkah demi langkah: [hosting/README.md](hosting/README.md). Gembok dan API berjalan di PHP
+(`hosting/public_html/_dty/`, diatur `.htaccess`); GitHub Actions membangun situs dan mengirimnya lewat SSH setiap push
+dan setiap 3 jam. Data tersimpan di `dty-private/` di samping `public_html`.
 
 ### Deploy di VPS (Hostinger)
 
@@ -185,6 +191,8 @@ src/
 server/access.ts                kode akses, sesi, gembok & API (dipakai VPS, Netlify, dan server lokal)
 server/node.mjs                 server Node untuk VPS/lokal: gembok + API + file statis, data di .data/access.json
 deploy/                         panduan & konfigurasi VPS (systemd, Nginx)
+hosting/                        shared hosting PHP: .htaccess + _dty/*.php (gembok & API), panduan, tes
+scripts/package-hosting.mjs     menyiapkan dist/ untuk diunggah ke public_html
 scripts/deploy.sh               build ulang tanpa downtime (dipakai cron & update kode di VPS)
 netlify/edge-functions/gate.ts  gembok di depan semua file terminal
 netlify/functions/api.mts       /api/* (login, pesanan, admin) + penyimpanan Netlify Blobs

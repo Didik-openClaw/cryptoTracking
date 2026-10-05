@@ -6,6 +6,7 @@
  * Every number here is invented. Addresses start with 0xdeadbeef so they can
  * never be mistaken for real accounts.
  */
+import { extraInfo } from './extra';
 import { INFO_URL, LEADERBOARD_URL, WS_URL } from '../lib/api';
 
 // ---------- deterministic randomness ----------
@@ -406,7 +407,7 @@ function info(body: Record<string, unknown>): unknown {
     case 'candleSnapshot':
       return candles(body.req as { coin: string; interval: string; startTime: number; endTime: number });
     default:
-      return null;
+      return extraInfo(body, { coins: COINS, funding }) ?? null;
   }
 }
 

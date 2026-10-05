@@ -1,8 +1,10 @@
 name: CI
 
-# Tests every push. When the site is hosted on Netlify (netlify.toml), the
-# schedule also asks Netlify to rebuild so the bundled leaderboard and news
-# snapshots stay fresh; a VPS does this itself with cron (deploy/README.md).
+# Tests and builds every push. On the default branch it also deploys to PHP
+# shared hosting (Hostinger) over SSH when the HOSTINGER_* secrets are set
+# (see hosting/README.md): after every push and every 3 hours, so the
+# leaderboard and news snapshots bundled at build time stay fresh.
+# For a Netlify site, the schedule triggers its build hook instead.
 
 on:
   push:
@@ -14,10 +16,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  test:
-    if: github.event_name != 'schedule'
+  build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,9 +32,39 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npm run build
+      - run: npm run build:hosting
 
-  refresh-data:
+      - name: Deploy to Hostinger
+        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
+        env:
+          SSH_HOST: ${{ secrets.HOSTINGER_HOST }}
+          SSH_PORT: ${{ secrets.HOSTINGER_PORT }}
+          SSH_USER: ${{ secrets.HOSTINGER_USER }}
+          SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
+          TARGET: ${{ vars.HOSTINGER_PATH || 'domains/dtycryptoterminal.com/public_html' }}
+        run: |
+          if [ -z "$SSH_HOST" ] || [ -z "$SSH_USER" ] || [ -z "$SSH_KEY" ]; then
+            echo "Secrets HOSTINGER_HOST / HOSTINGER_USER / HOSTINGER_SSH_KEY belum diisi; deploy dilewati."
+            exit 0
+          fi
+          PORT="${SSH_PORT:-65002}"
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          if [ -n "$KNOWN_HOSTS" ]; then
+            printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+            CHECK=yes
+          else
+            CHECK=accept-new
+          fi
+          SSH="ssh -p $PORT -i ~/.ssh/deploy -o StrictHostKeyChecking=$CHECK -o ServerAliveInterval=15"
+          # Upload everything except the server's own folders, then remove files that are gone from the build.
+          rsync -rlzt --checksum --delete-after --exclude='.well-known/' --exclude='dty-private/' \
+            -e "$SSH" dist/ "$SSH_USER@$SSH_HOST:$TARGET/"
+          echo "Deploy selesai: $(date -u '+%Y-%m-%d %H:%M UTC')"
+          ssh-keygen -lf ~/.ssh/known_hosts 2>/dev/null | head -3 || true
+
+  refresh-netlify:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:

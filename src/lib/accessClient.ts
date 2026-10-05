@@ -84,7 +84,11 @@ const ERROR_TEXT: Record<string, { id?: string; en: string }> = {
 export async function api<T>(path: string, init: RequestInit & { admin?: string } = {}): Promise<T> {
   const headers = new Headers(init.headers);
   if (init.body) headers.set('Content-Type', 'application/json');
-  if (init.admin) headers.set('Authorization', `Bearer ${init.admin}`);
+  if (init.admin) {
+    headers.set('Authorization', `Bearer ${init.admin}`);
+    // Some shared hosts strip Authorization before PHP sees it; the PHP API also reads this one.
+    headers.set('X-Admin-Key', init.admin);
+  }
   let res: Response;
   try {
     res = await fetch(path, { ...init, headers, credentials: 'same-origin', cache: 'no-store' });
