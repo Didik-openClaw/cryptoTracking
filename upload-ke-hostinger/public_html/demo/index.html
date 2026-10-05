@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Lacak trader Hyperliquid dengan posisi perp jumbo: siapa long, siapa short, entry, likuidasi, dan trade besar real-time." />
+    <meta name="theme-color" content="#000000" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <script>
+      // Apply the saved theme before first paint (src/lib/theme.ts takes over after load).
+      try {
+        var t = JSON.parse(localStorage.getItem('hlw.theme') || '"dark"');
+        var light = t === 'light' || (t === 'auto' && matchMedia('(prefers-color-scheme: light)').matches);
+        document.documentElement.dataset.mode = light ? 'light' : 'dark';
+      } catch (e) {}
+    </script>
+    <title>DTY Crypto Terminal (demo)</title>
+    <script type="module" crossorigin src="../demo/assets/index-BYFO74Jw.js"></script>
+    <link rel="stylesheet" crossorigin href="../demo/assets/index-B5j23mYS.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

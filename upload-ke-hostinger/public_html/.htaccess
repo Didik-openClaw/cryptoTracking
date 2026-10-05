@@ -1,0 +1,53 @@
+# DTY Crypto Terminal on shared hosting (LiteSpeed / Apache).
+# The public pages (/beli/, /demo/, /admin/) are served as plain files.
+# /api/* goes to _dty/api.php. Everything else (the terminal) goes through
+# _dty/gate.php, which only hands out files to visitors with a valid access
+# session. Private data lives outside public_html in ../dty-private/.
+
+Options -Indexes
+DirectoryIndex index.html
+AddDefaultCharset utf-8
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /
+
+# Hand the Authorization header (admin API) to PHP; some setups drop it.
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# SSL certificate validation.
+RewriteRule ^\.well-known/ - [L]
+
+# Refuse encoded dots/slashes, backslashes and dot-segments in the raw path
+# (not the query string: /api/refresh?next=%2F… is legitimate).
+RewriteCond %{THE_REQUEST} ^\S+\s[^?\s]*(%2e|%2f|%5c|\\|/\.\.?(/|\s|\?)) [NC]
+RewriteRule ^ - [F]
+
+# Hidden files and the PHP folder (except its two entry points).
+RewriteRule (^|/)\. - [F]
+RewriteRule ^_dty/(api|gate)\.php$ - [L]
+RewriteRule ^_dty(/|$) - [F]
+
+# Access API.
+RewriteRule ^api(/|$) _dty/api.php [L,QSA]
+
+# Public pages.
+RewriteRule ^(beli|demo|admin)(/|$) - [L]
+RewriteRule ^favicon\.svg$ - [L]
+
+# Everything else is the terminal, behind the access gate.
+RewriteRule ^ _dty/gate.php [L,QSA]
+</IfModule>
+
+<IfModule mod_headers.c>
+Header set X-Content-Type-Options "nosniff"
+Header set X-Frame-Options "SAMEORIGIN"
+Header set Referrer-Policy "strict-origin-when-cross-origin"
+# Public pages: HTML is revalidated, content-hashed assets are cached for a year.
+<FilesMatch "\.html$">
+Header set Cache-Control "no-cache"
+</FilesMatch>
+<FilesMatch "-[A-Za-z0-9_-]{8}\.(js|css)$">
+Header set Cache-Control "public, max-age=31536000, immutable"
+</FilesMatch>
+</IfModule>
