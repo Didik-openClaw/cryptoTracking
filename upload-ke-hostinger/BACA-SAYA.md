@@ -1,5 +1,10 @@
 # Upload ke Hostinger
 
+**Cara termudah:** unggah `dty-site.zip` (di folder ini) ke `public_html` lewat hPanel → File Manager,
+klik kanan → **Extract** ke `public_html`, lalu hapus zip-nya. Isinya sama dengan folder `public_html/` di bawah.
+
+Jangan pakai folder `hosting/public_html` di repo: itu hanya bahan (PHP), bukan situs lengkap.
+
 Isi folder `public_html/` di sini adalah **situs yang sudah jadi**. Unggah **isinya** ke
 `public_html` milik dtycryptoterminal.com (lewat hPanel → File Manager atau FTP).
 
