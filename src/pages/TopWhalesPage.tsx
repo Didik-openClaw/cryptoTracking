@@ -3,6 +3,7 @@ import { Addr } from '../components/Addr';
 import { Empty, LongShortBar, Progress, Seg, Spinner, StatCard, useSort } from '../components/ui';
 import { getClearinghouseState, Priority } from '../lib/api';
 import { fmtPct, fmtPF, fmtShortDateTime, fmtSpan, fmtUsd, pfClass, pnlClass, wrClass } from '../lib/format';
+import { csvFilename, downloadCsv } from '../lib/csv';
 import { tr } from '../lib/i18n';
 import { useObservable } from '../lib/observable';
 import { parseClearinghouse } from '../lib/positions';
@@ -272,7 +273,38 @@ export function TopWhalesPage() {
         <div className="panel-head">
           <h2>{tr('Peringkat', 'Rankings')}</h2>
           <span className="hint">
-            {tr('Statistik trade', 'Trade stats')} {loaded}/{rows.length} {loaded < rows.length && <Spinner />}
+            {tr('Statistik trade', 'Trade stats')} {loaded}/{rows.length} {loaded < rows.length && <Spinner />}{' '}
+            <button
+              type="button"
+              className="btn sm ghost"
+              disabled={!sorted.length}
+              onClick={() =>
+                downloadCsv(
+                  csvFilename('dty-top-whales'),
+                  ['rank', 'wallet', 'name', 'account_value', `pnl_${win}`, `roi_${win}`, 'pnl_all_time', `volume_${win}`, 'win_rate', 'profit_factor', 'trades', 'expectancy', 'avg_hold_hours', 'long_share', 'open_long_usd', 'open_short_usd'],
+                  sorted.map((r) => [
+                    r.rank,
+                    r.seed.address,
+                    r.seed.displayName ?? '',
+                    r.seed.accountValue,
+                    r.seed.pnl[win],
+                    r.seed.roi[win],
+                    r.seed.pnl.allTime,
+                    r.seed.vlm[win],
+                    r.stats?.winRate,
+                    r.stats?.profitFactor === Infinity ? 'inf' : r.stats?.profitFactor,
+                    r.stats?.trades,
+                    r.stats?.expectancy,
+                    r.stats?.avgHoldMs == null ? null : r.stats.avgHoldMs / 3_600_000,
+                    r.stats?.longShare,
+                    r.long,
+                    r.short,
+                  ]),
+                )
+              }
+            >
+              Export CSV
+            </button>
           </span>
         </div>
         {loaded < rows.length && (

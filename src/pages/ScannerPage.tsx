@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Addr } from '../components/Addr';
 import { PositionsTable } from '../components/PositionsTable';
+import { csvFilename, downloadCsv } from '../lib/csv';
 import { Empty, LongShortBar, Progress, Seg, StatCard, UsdSelect } from '../components/ui';
 import { fmtAgo, fmtCount, fmtDuration, fmtUsd, pnlClass } from '../lib/format';
 import { useWhalePositions } from '../hooks';
@@ -292,7 +293,36 @@ export function ScannerPage() {
             {tr(
               <>Klik judul kolom untuk mengurutkan · ☆ untuk pantau &amp; dapat alert</>,
               <>Click a column header to sort · ☆ to watch &amp; get alerts</>,
-            )}
+            )}{' '}
+            <button
+              type="button"
+              className="btn sm ghost"
+              disabled={!filtered.length}
+              onClick={() =>
+                downloadCsv(
+                  csvFilename('dty-whale-positions'),
+                  ['wallet', 'label', 'coin', 'side', 'size', 'value_usd', 'entry', 'mark', 'liq_price', 'liq_distance', 'leverage', 'upnl_usd', 'roe', 'account_value'],
+                  filtered.map((p) => [
+                    p.address,
+                    watchlist.labelOf(p.address),
+                    p.coin,
+                    p.side,
+                    p.size,
+                    p.notional,
+                    p.entryPx,
+                    p.mark,
+                    p.liquidationPx,
+                    p.liqDistance,
+                    p.leverage,
+                    p.livePnl,
+                    p.liveRoe,
+                    p.accountValue,
+                  ]),
+                )
+              }
+            >
+              Export CSV
+            </button>
           </span>
         </div>
         <div className="filters" style={{ marginBottom: 12 }}>

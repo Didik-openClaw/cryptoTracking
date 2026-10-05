@@ -2,8 +2,10 @@ import { Header } from './components/Header';
 import { StatusBar } from './components/StatusBar';
 import { Toasts } from './components/Toasts';
 import { CoinPage } from './pages/CoinPage';
+import { CalculatorPage } from './pages/CalculatorPage';
 import { CoinsPage } from './pages/CoinsPage';
 import { LivePage } from './pages/LivePage';
+import { MarketsPage } from './pages/MarketsPage';
 import { ScannerPage } from './pages/ScannerPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TopWhalesPage } from './pages/TopWhalesPage';
@@ -27,6 +29,12 @@ export function App() {
       break;
     case 'live':
       content = <LivePage />;
+      break;
+    case 'markets':
+      content = <MarketsPage />;
+      break;
+    case 'calc':
+      content = <CalculatorPage key={arg ?? ''} coin={arg} />;
       break;
     case 'top':
       content = <TopWhalesPage />;

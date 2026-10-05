@@ -4,6 +4,7 @@ import { live } from './live';
 import { market } from './market';
 import { news } from './news';
 import { openTimes } from './openTimes';
+import { priceAlerts } from './priceAlerts';
 import { scanner } from './scanner';
 import { settings } from './settings';
 import { watchlist } from './watchlist';
@@ -39,6 +40,7 @@ export function startApp(): void {
   market.start();
   live.start();
   watchlist.start();
+  priceAlerts.start();
   wire.start();
   news.start();
   void scanner.start();

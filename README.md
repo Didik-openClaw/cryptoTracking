@@ -37,6 +37,11 @@ browser pengunjung.
 | **Detail wallet** (`#/wallet/0x…`) | Nilai akun, leverage efektif, grafik PnL/equity (24 jam/7 hari/30 hari/semua), semua posisi, chart trade dengan marker beli/jual, open order (termasuk TP/SL), riwayat trade (2000 fill terakhir), funding, deposit/withdraw/transfer, saldo spot, dan statistik (volume, win rate, PnL terealisasi, fee, likuidasi). |
 | **Watchlist & Alert** (`#/watchlist`) | Simpan wallet favorit dan beri nama. Alert muncul untuk setiap trade, buka/tutup/tambah/kurangi posisi, balik arah, posisi yang mendekati likuidasi, dan (opsional) whale baru dari scanner. Notifikasi dikirim lewat browser, bunyi, dan log. Watchlist bisa di-import/export. |
 | **Pengaturan** (`#/settings`) | Bahasa, tema, jumlah akun yang dipindai, kecepatan request, threshold, interval refresh, dan status koneksi. |
+| **Market & Funding** (`#/markets`, MRKT) | Screener semua perp: harga, perubahan 24 jam, volume, open interest, rasio OI/volume, funding per jam + APR, basis (mark vs oracle), leverage maksimal; ringkasan OI, volume, funding rata-rata (bobot OI) dan funding ekstrem; **arbitrase funding** Hyperliquid vs Binance vs Bybit (APR, selisih, sisi yang menerima funding); export CSV. |
+| **Order book** (halaman coin) | L2 live (refresh 3 detik) dengan presisi Full/5/4/3/2 angka penting, kumulatif & bar kedalaman, kedalaman ±0,5/1/2 % dan imbalance bid/ask, serta **whale walls** (≥ $250K–$5M) dengan jaraknya dari harga. |
+| **Riwayat funding** (halaman coin) | Funding per jam 24 jam/7 hari/30 hari dalam APR, dengan nilai sekarang, rata-rata, rentang, kumulatif, dan porsi jam positif. |
+| **Kalkulator & Alert** (`#/calc`, CALC) | Ukuran posisi dari risiko (% atau USD), sampai 3 take-profit dengan persentase penutupan, margin, rugi maksimal termasuk fee, R per TP dan R:R gabungan, break-even, perkiraan harga likuidasi isolated/cross, biaya funding selama posisi dipegang, dan peringatan (stop melewati likuidasi, risiko > 2 %, dll.). **Alert harga**: naik ke / turun ke / bergerak X % dalam N menit, sekali atau berulang, dengan notifikasi browser dan bunyi. |
+| **Export CSV** | Tabel posisi whale, Top Whale, dan screener market bisa diunduh sebagai CSV. |
 | **Indikator chart** (tombol **Indikator** di atas chart) | 17 indikator yang bisa dinyalakan dan diatur periode, sumber harga, dan warnanya. Di chart harga: 3 Moving Average (SMA/EMA/WMA), Bollinger Bands, VWAP (harian/mingguan/bulanan), Supertrend, Parabolic SAR, Ichimoku. Di panel bawah: Volume (+MA), RSI (level overbought/oversold), MACD, Stochastic RSI, Stochastic, ATR, ADX/DMI, OBV, CCI. Legenda menampilkan OHLC dan nilai indikator di posisi kursor. Interval 5m, 15m, 1h, 4h, 1d, 1w. Pengaturan berlaku untuk semua chart dan tersimpan di browser. |
 | **Bahasa** (tombol **ID / EN** di header) | Seluruh situs (terminal, halaman beli, admin) dalam Bahasa Indonesia atau English. Tautan `?lang=en` membuka versi Inggris. |
 
@@ -183,6 +188,9 @@ src/
     watchlist.ts    watchlist, polling, alert (alerts.ts: deteksi perubahan posisi)
     market.ts       harga, funding, open interest
     indicators.ts   rumus indikator teknikal (indicatorSettings.ts: daftar, parameter, warna)
+    marketScreen.ts, fundingCompare.ts, fundingHistory.ts   screener & funding
+    orderbook.ts    order book L2: kedalaman, imbalance, whale walls
+    riskCalc.ts     kalkulator risiko & posisi; priceAlerts.ts: alert harga; csv.ts: export
     i18n.ts         bahasa Indonesia / English: tr('Posisi', 'Positions')
   components/     komponen UI (tabel, chart, header)
   pages/          halaman terminal

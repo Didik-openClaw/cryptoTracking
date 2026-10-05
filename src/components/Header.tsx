@@ -16,9 +16,11 @@ import { go } from '../router';
 export const FUNCTIONS = [
   { path: '', code: 'WHAL', label: () => tr('Scanner Whale', 'Whale Scanner') },
   { path: 'coins', code: 'LSHT', label: () => 'Long vs Short' },
+  { path: 'markets', code: 'MRKT', label: () => tr('Market & Funding', 'Markets & Funding') },
   { path: 'top', code: 'TOPW', label: () => 'Top Whale' },
   { path: 'live', code: 'BLKT', label: () => tr('Trade Besar', 'Block Trades') },
   { path: 'watchlist', code: 'WTCH', label: () => 'Watchlist' },
+  { path: 'calc', code: 'CALC', label: () => tr('Kalkulator & Alert', 'Calculator & Alerts') },
   { path: 'settings', code: 'PREF', label: () => tr('Pengaturan', 'Settings') },
 ];
 

@@ -19,7 +19,7 @@ import {
 } from 'lightweight-charts';
 import { getCandles } from '../lib/api';
 import { fmtPct, fmtPx, fmtUsd, monthName, num, pnlClass, pxDecimals } from '../lib/format';
-import { tr } from '../lib/i18n';
+import { locale, tr } from '../lib/i18n';
 import type { Bar } from '../lib/indicators';
 import { indicators } from '../lib/indicatorSettings';
 import { useObservable } from '../lib/observable';
@@ -92,6 +92,7 @@ function baseChart(el: HTMLElement, p: Palette): IChartApi {
     timeScale: { ...t.timeScale, timeVisible: true, secondsVisible: false, tickMarkFormatter: tickMark },
     crosshair: { mode: CrosshairMode.Normal, ...t.crosshair },
     localization: {
+      locale: locale(),
       timeFormatter: (t: Time) => {
         const d = toDate(t);
         return `${d.getDate()} ${monthName(d.getMonth())} ${d.getFullYear()} ${hhmm(d)}`;

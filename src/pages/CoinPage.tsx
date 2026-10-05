@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Addr } from '../components/Addr';
+import { FundingHistory } from '../components/FundingHistory';
 import { NewsPanel } from '../components/NewsPanel';
 import { Opened } from '../components/Opened';
+import { OrderBook } from '../components/OrderBook';
+import { PriceAlertPanel } from '../components/PriceAlertPanel';
 import { PriceChart, type ChartLine } from '../components/Charts';
 import { Empty, LiqDist, LongShortBar, Pnl, Seg, StatCard, UsdSelect } from '../components/ui';
 import { fmtPct, fmtPx, fmtSize, fmtUsd, pnlClass } from '../lib/format';
@@ -96,6 +99,9 @@ export function CoinPage({ coin }: { coin: string }) {
           )}
         </div>
         <div className="row">
+          <a className="btn sm ghost" href={`#/calc/${encodeURIComponent(coin)}`}>
+            {tr('Kalkulator posisi', 'Position calculator')}
+          </a>
           <span className="muted small">{tr('Posisi minimal', 'Min. position')}</span>
           <UsdSelect value={s.minPositionUsd} onChange={(v) => settings.update({ minPositionUsd: v })} />
         </div>
@@ -166,6 +172,14 @@ export function CoinPage({ coin }: { coin: string }) {
           </div>
         </section>
         <NewsPanel coin={coin} />
+      </div>
+
+      <div className="grid-2">
+        <OrderBook coin={coin} />
+        <div className="stack">
+          <FundingHistory coin={coin} />
+          <PriceAlertPanel coin={coin} />
+        </div>
       </div>
 
       <div className="grid-2">

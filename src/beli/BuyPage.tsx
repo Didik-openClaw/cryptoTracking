@@ -57,6 +57,22 @@ const features = (): [string, string, string][] => [
     ),
   ],
   [
+    'MRKT',
+    tr('Market, funding & order book', 'Markets, funding & order book'),
+    tr(
+      'Screener semua perp (OI, volume, funding, basis), arbitrase funding Hyperliquid vs Binance/Bybit, riwayat funding, dan order book live dengan whale walls.',
+      'All-perp screener (OI, volume, funding, basis), Hyperliquid vs Binance/Bybit funding arbitrage, funding history, and a live order book with whale walls.',
+    ),
+  ],
+  [
+    'CALC',
+    tr('Kalkulator risiko & alert harga', 'Risk calculator & price alerts'),
+    tr(
+      'Ukuran posisi dari risiko %, harga likuidasi, R:R tiap take-profit, fee dan funding; alert saat harga tembus level atau bergerak tajam. Export CSV untuk tabel.',
+      'Position size from risk %, liquidation price, R:R per take-profit, fees and funding; alerts when price breaks a level or moves sharply. CSV export for tables.',
+    ),
+  ],
+  [
     'BLKT',
     tr('Trade besar live', 'Live block trades'),
     tr(
