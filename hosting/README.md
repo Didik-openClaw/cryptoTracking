@@ -73,6 +73,23 @@ hPanel → **Websites → dtycryptoterminal.com → Security → SSL**: pastikan
 - Buat satu kode di admin, aktifkan di `/beli/`, dan terminal akan terbuka.
 - `https://dtycryptoterminal.com/demo/` adalah demo gratis.
 
+## Cara lain: upload manual (File Manager atau FTP)
+
+Tanpa GitHub Actions, unggah sendiri paket `dty-hosting-upload`. Cara mendapatkannya: buka GitHub → **Actions** → run
+terbaru yang hijau → **Artifacts** → unduh `dty-hosting-upload`, lalu ekstrak di komputer. Isinya sudah termasuk
+snapshot data terbaru. Bisa juga dibuat sendiri dengan `npm run build:hosting`, yang mengisi folder `dist/`.
+
+- **File Manager** (paling mudah): hPanel → **Websites → dtycryptoterminal.com → File Manager** → buka `public_html`
+  → hapus `default.php` → **Upload** file zip → klik kanan zip → **Extract** ke `public_html` → hapus zip-nya.
+  Hasilnya `index.html`, `.htaccess`, `_dty/`, `assets/` dll. harus langsung berada di dalam `public_html`, tidak di
+  subfolder.
+- **FTP / SFTP (FileZilla)**: detail login ada di hPanel → **Files → FTP Accounts**. Untuk SFTP yang lebih aman, pakai
+  login SSH dengan port 65002. Di FileZilla nyalakan **Server → Force showing hidden files** supaya `.htaccess` ikut
+  terlihat. Unggah **isi** folder hasil ekstrak (bukan foldernya) ke `public_html` milik dtycryptoterminal.com.
+
+Setelah itu tetap jalankan langkah 1 (password admin) dan langkah 5 (SSL). Untuk update berikutnya, unggah paket baru
+dan timpa file lama. Data pelanggan di `dty-private/` tidak ikut tersentuh.
+
 ## Backup data pelanggan
 
 ```bash
